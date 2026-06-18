@@ -4,6 +4,8 @@ import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.model.Producto;
 import com.gotechy.bookly.modules.catalogo.service.ProductoService;
 import jakarta.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +28,7 @@ public class ProductoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Producto> actualizarProducto(
+    public ResponseEntity<Map<String, Object>> actualizarProducto(
         @PathVariable UUID id,
         @Valid @RequestBody ProductoRequestDTO productoDTO
     ) {
@@ -34,12 +36,26 @@ public class ProductoController {
             id,
             productoDTO
         );
-        return ResponseEntity.ok(productoActualizado);
+
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("mensaje", "Producto actualizado con éxito");
+        respuesta.put("producto", productoActualizado);
+
+        return ResponseEntity.ok(respuesta);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable UUID id) {
+    public ResponseEntity<Map<String, String>> eliminarProducto(
+        @PathVariable UUID id
+    ) {
         productoService.eliminarProducto(id);
-        return ResponseEntity.noContent().build();
+
+        Map<String, String> respuesta = new HashMap<>();
+        respuesta.put(
+            "mensaje",
+            "Producto eliminado (inactivado) correctamente"
+        );
+
+        return ResponseEntity.ok(respuesta);
     }
 }
