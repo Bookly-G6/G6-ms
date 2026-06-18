@@ -3,6 +3,7 @@ package com.gotechy.bookly.modules.catalogo.controller;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.model.Producto;
 import com.gotechy.bookly.modules.catalogo.service.ProductoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,7 @@ public class ProductoController {
 
     @PostMapping
     public ResponseEntity<Producto> crearProducto(
-        @RequestBody ProductoRequestDTO productoDTO
+        @Valid @RequestBody ProductoRequestDTO productoDTO
     ) {
         Producto nuevoProducto = productoService.crearProducto(productoDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoProducto);
