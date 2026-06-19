@@ -35,4 +35,18 @@ public class EnvioController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> actualizarEnvio(
+        @PathVariable UUID id,
+        @Valid @RequestBody EnvioRequestDTO dto
+    ) {
+        Envio envioActualizado = envioService.actualizarEnvio(id, dto);
+
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("mensaje", "Envío actualizado con éxito");
+        respuesta.put("envio", envioActualizado);
+
+        return ResponseEntity.ok(respuesta);
+    }
 }
