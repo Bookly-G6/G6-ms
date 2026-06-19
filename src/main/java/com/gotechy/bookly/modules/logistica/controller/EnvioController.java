@@ -49,4 +49,19 @@ public class EnvioController {
 
         return ResponseEntity.ok(respuesta);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> eliminarEnvio(
+        @PathVariable UUID id
+    ) {
+        envioService.eliminarEnvio(id);
+
+        Map<String, String> respuesta = new HashMap<>();
+        respuesta.put(
+            "mensaje",
+            "Envío dado de baja (inactivado) correctamente"
+        );
+
+        return ResponseEntity.ok(respuesta);
+    }
 }
