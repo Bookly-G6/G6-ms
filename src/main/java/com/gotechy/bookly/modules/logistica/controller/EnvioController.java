@@ -18,6 +18,11 @@ public class EnvioController {
 
     private final EnvioService envioService;
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Envio> obtenerEnvio(@PathVariable UUID id) {
+        return ResponseEntity.ok(envioService.obtenerEnvio(id));
+    }
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> crearEnvio(
         @Valid @RequestBody EnvioRequestDTO dto
