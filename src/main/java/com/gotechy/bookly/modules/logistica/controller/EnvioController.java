@@ -3,9 +3,12 @@ package com.gotechy.bookly.modules.logistica.controller;
 import com.gotechy.bookly.modules.logistica.dto.EnvioRequestDTO;
 import com.gotechy.bookly.modules.logistica.model.Envio;
 import com.gotechy.bookly.modules.logistica.service.EnvioService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class EnvioController {
 
     private final EnvioService envioService;
+
+    @GetMapping
+    public ResponseEntity<List<Envio>> obtenerTodosLosEnvios() {
+        return ResponseEntity.ok(envioService.obtenerTodosLosEnvios());
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<Envio> obtenerEnvio(@PathVariable UUID id) {
