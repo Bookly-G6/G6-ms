@@ -1,10 +1,12 @@
 package com.gotechy.bookly.modules.catalogo.service;
 
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
-import com.gotechy.bookly.modules.catalogo.model.Producto;
-import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
+import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
+import com.gotechy.bookly.modules.catalogo.model.*;
+import com.gotechy.bookly.modules.catalogo.repository.*;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,53 +15,81 @@ import org.springframework.stereotype.Service;
 public class ProductoService {
 
     private final ProductoRepository productoRepository;
+    private final TipoProductoRepository tipoProductoRepository;
+    private final EditorialSelloRepository editorialSelloRepository;
+    private final RangoEtarioRepository rangoEtarioRepository;
+    private final CategoriaRepository categoriaRepository;
 
-    public Producto crearProducto(ProductoRequestDTO dto) {
+    public ProductoResponseDTO crearProducto(ProductoRequestDTO dto) {
+        TipoProducto tipoProducto = tipoProductoRepository
+            .findById(dto.getIdTipoProducto())
+            .orElseThrow(() ->
+                new EntityNotFoundException("Tipo de producto no encontrado")
+            );
+
+        EditorialSello editorialSello = editorialSelloRepository
+            .findById(dto.getIdEditorialSello())
+            .orElseThrow(() ->
+                new EntityNotFoundException("Editorial o Sello no encontrado")
+            );
+
+        RangoEtario rangoEtario = rangoEtarioRepository
+            .findById(dto.getIdRangoEtario())
+            .orElseThrow(() ->
+                new EntityNotFoundException("Rango etario no encontrado")
+            );
+
+        List<Categoria> categorias = categoriaRepository.findAllById(
+            dto.getIdsCategorias()
+        );
+        if (categorias.isEmpty()) {
+            throw new EntityNotFoundException(
+                "No se encontraron las categorías especificadas"
+            );
+        }
+
         Producto producto = new Producto();
-        producto.setCodigoBarras(dto.codigoBarras());
-        producto.setNombreProducto(dto.nombreProducto());
-        producto.setDescripcion(dto.descripcion());
-        producto.setPrecioActual(dto.precioActual());
-        producto.setIdTipoProducto(dto.idTipoProducto());
-        producto.setIdEditorialSello(dto.idEditorialSello());
-        producto.setIdRangoEtario(dto.idRangoEtario());
+        producto.setCodigoBarras(dto.getCodigoBarras());
+        producto.setNombreProducto(dto.getNombreProducto());
+        producto.setDescripcion(dto.getDescripcion());
+        producto.setPrecioCosto(dto.getPrecioCosto());
+        producto.setPrecioActual(dto.getPrecioActual());
+        producto.setTipoProducto(tipoProducto);
+        producto.setEditorialSello(editorialSello);
+        producto.setRangoEtario(rangoEtario);
+        producto.setCategorias(categorias);
+        producto.setAtributosEspecificos(dto.getAtributosEspecificos()); // Guardado directo a JSONB
 
-        return productoRepository.save(producto);
+        Producto productoGuardado = productoRepository.save(producto);
+
+        return mapearAResponseDTO(productoGuardado);
     }
 
-    public Producto actualizarProducto(
-        UUID idProducto,
-        ProductoRequestDTO dto
-    ) {
-        Producto productoExistente = productoRepository
-            .findById(idProducto)
-            .orElseThrow(() ->
-                new EntityNotFoundException(
-                    "No se encontró el producto con ID: " + idProducto
-                )
-            );
+    private ProductoResponseDTO mapearAResponseDTO(Producto producto) {
+        ProductoResponseDTO response = new ProductoResponseDTO();
+        response.setIdProducto(producto.getIdProducto());
+        response.setCodigoBarras(producto.getCodigoBarras());
+        response.setNombreProducto(producto.getNombreProducto());
+        response.setDescripcion(producto.getDescripcion());
+        response.setPrecioCosto(producto.getPrecioCosto());
+        response.setPrecioActual(producto.getPrecioActual());
+        response.setActivo(producto.getActivo());
 
-        productoExistente.setCodigoBarras(dto.codigoBarras());
-        productoExistente.setNombreProducto(dto.nombreProducto());
-        productoExistente.setDescripcion(dto.descripcion());
-        productoExistente.setPrecioActual(dto.precioActual());
-        productoExistente.setIdTipoProducto(dto.idTipoProducto());
-        productoExistente.setIdEditorialSello(dto.idEditorialSello());
-        productoExistente.setIdRangoEtario(dto.idRangoEtario());
+        // Aplanamos las relaciones para el frontend
+        response.setTipoProducto(producto.getTipoProducto().getNombreTipo());
+        response.setEditorialSello(producto.getEditorialSello().getNombre());
+        response.setRangoEtario(producto.getRangoEtario().getDescripcion());
 
-        return productoRepository.save(productoExistente);
-    }
+        // Convertimos la List<Categoria> en una List<String>
+        List<String> nombresCategorias = producto
+            .getCategorias()
+            .stream()
+            .map(Categoria::getNombreCategoria)
+            .collect(Collectors.toList());
+        response.setCategorias(nombresCategorias);
 
-    public void eliminarProducto(UUID idProducto) {
-        Producto productoExistente = productoRepository
-            .findById(idProducto)
-            .orElseThrow(() ->
-                new EntityNotFoundException(
-                    "No se encontró el producto con ID: " + idProducto
-                )
-            );
+        response.setAtributosEspecificos(producto.getAtributosEspecificos());
 
-        productoExistente.setActivo(false);
-        productoRepository.save(productoExistente);
+        return response;
     }
 }
