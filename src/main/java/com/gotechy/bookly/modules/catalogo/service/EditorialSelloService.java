@@ -19,4 +19,8 @@ public class EditorialSelloService {
     public EditorialSello crearEditorialSello(EditorialSello editorialSello) {
         return editorialSelloRepository.save(editorialSello);
     }
+
+    public void eliminarEditorialSello(Integer id) {
+        editorialSelloRepository.deleteById(id);
+    }
 }

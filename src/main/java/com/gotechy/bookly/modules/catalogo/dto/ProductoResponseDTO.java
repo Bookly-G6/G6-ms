@@ -1,5 +1,6 @@
 package com.gotechy.bookly.modules.catalogo.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -12,8 +13,8 @@ public class ProductoResponseDTO {
     private String codigoBarras;
     private String nombreProducto;
     private String descripcion;
-    private Double precioCosto;
-    private Double precioActual;
+    private BigDecimal precioCosto;
+    private BigDecimal precioActual;
     private Boolean activo;
 
     private String tipoProducto;
@@ -24,4 +25,6 @@ public class ProductoResponseDTO {
 
     // El JSON intacto para que rendericen la tabla de especificaciones técnicas
     private Map<String, Object> atributosEspecificos;
+
+    private List<String> autores;
 }

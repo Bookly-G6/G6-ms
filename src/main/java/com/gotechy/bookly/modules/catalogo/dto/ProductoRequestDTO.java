@@ -1,6 +1,7 @@
 package com.gotechy.bookly.modules.catalogo.dto;
 
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -27,7 +28,7 @@ public class ProductoRequestDTO {
         inclusive = false,
         message = "El precio de costo debe ser mayor a 0"
     )
-    private Double precioCosto;
+    private BigDecimal precioCosto;
 
     @NotNull(message = "El precio actual es obligatorio")
     @DecimalMin(
@@ -35,7 +36,7 @@ public class ProductoRequestDTO {
         inclusive = false,
         message = "El precio actual debe ser mayor a 0"
     )
-    private Double precioActual;
+    private BigDecimal precioActual;
 
     @NotNull(message = "El ID del tipo de producto es obligatorio")
     private Integer idTipoProducto;
@@ -50,4 +51,7 @@ public class ProductoRequestDTO {
     private List<Integer> idsCategorias;
 
     private Map<String, Object> atributosEspecificos;
+
+    @NotEmpty(message = "El producto debe tener al menos un autor/artista")
+    private List<Integer> idsAutores;
 }

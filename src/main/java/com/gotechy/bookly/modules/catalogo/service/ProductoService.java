@@ -6,6 +6,7 @@ import com.gotechy.bookly.modules.catalogo.model.*;
 import com.gotechy.bookly.modules.catalogo.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,15 @@ public class ProductoService {
     private final EditorialSelloRepository editorialSelloRepository;
     private final RangoEtarioRepository rangoEtarioRepository;
     private final CategoriaRepository categoriaRepository;
+    private final AutorArtistaRepository autorArtistaRepository;
+
+    public List<ProductoResponseDTO> listarActivos() {
+        return productoRepository
+            .findByActivoTrue()
+            .stream()
+            .map(this::mapearAResponseDTO)
+            .collect(Collectors.toList());
+    }
 
     public ProductoResponseDTO crearProducto(ProductoRequestDTO dto) {
         TipoProducto tipoProducto = tipoProductoRepository
@@ -48,7 +58,17 @@ public class ProductoService {
             );
         }
 
+        List<AutorArtista> autores = autorArtistaRepository.findAllById(
+            dto.getIdsAutores()
+        );
+        if (autores.isEmpty()) {
+            throw new EntityNotFoundException(
+                "No se encontraron los autores especificados"
+            );
+        }
+
         Producto producto = new Producto();
+        producto.setAutores(autores);
         producto.setCodigoBarras(dto.getCodigoBarras());
         producto.setNombreProducto(dto.getNombreProducto());
         producto.setDescripcion(dto.getDescripcion());
@@ -74,10 +94,20 @@ public class ProductoService {
         response.setPrecioCosto(producto.getPrecioCosto());
         response.setPrecioActual(producto.getPrecioActual());
         response.setActivo(producto.getActivo());
+        List<String> nombresAutores = producto
+            .getAutores()
+            .stream()
+            .map(AutorArtista::getNombre)
+            .collect(Collectors.toList());
+        response.setAutores(nombresAutores);
 
         // Aplanamos las relaciones para el frontend
-        response.setTipoProducto(producto.getTipoProducto().getNombreTipo());
-        response.setEditorialSello(producto.getEditorialSello().getNombre());
+        response.setTipoProducto(
+            producto.getTipoProducto().getNombreTipoProducto()
+        );
+        response.setEditorialSello(
+            producto.getEditorialSello().getNombreEditorial()
+        );
         response.setRangoEtario(producto.getRangoEtario().getDescripcion());
 
         // Convertimos la List<Categoria> en una List<String>
@@ -91,5 +121,18 @@ public class ProductoService {
         response.setAtributosEspecificos(producto.getAtributosEspecificos());
 
         return response;
+    }
+
+    public void eliminar(UUID id) {
+        Producto producto = productoRepository
+            .findById(id)
+            .orElseThrow(() ->
+                new EntityNotFoundException(
+                    "Producto con ID " + id + " no encontrado"
+                )
+            );
+
+        producto.setActivo(false);
+        productoRepository.save(producto);
     }
 }

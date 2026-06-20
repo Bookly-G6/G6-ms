@@ -16,7 +16,7 @@ public class EditorialSelloController {
     @GetMapping
     public ResponseEntity<List<EditorialSello>> getAllEditorialSello() {
         List<EditorialSello> editorialSelloList =
-            editorialSelloService.getAllEditorialSello();
+            editorialSelloService.listarEditorialesSelloActivas();
         return ResponseEntity.ok(editorialSelloList);
     }
 
@@ -25,15 +25,17 @@ public class EditorialSelloController {
         @RequestBody EditorialSello editorialSello
     ) {
         EditorialSello createdEditorialSello =
-            editorialSelloService.createEditorialSello(editorialSello);
+            editorialSelloService.crearEditorialSello(editorialSello);
         return ResponseEntity.status(HttpStatus.CREATED).body(
             createdEditorialSello
         );
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEditorialSello(@PathVariable Long id) {
-        editorialSelloService.deleteEditorialSello(id);
+    public ResponseEntity<Void> eliminarEditorialSello(
+        @PathVariable Integer id
+    ) {
+        editorialSelloService.eliminarEditorialSello(id);
         return ResponseEntity.noContent().build();
     }
 }

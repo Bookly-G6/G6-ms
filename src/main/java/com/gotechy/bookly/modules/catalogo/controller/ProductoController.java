@@ -5,6 +5,8 @@ import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
 import com.gotechy.bookly.modules.catalogo.service.ProductoService;
 import com.gotechy.bookly.modules.catalogo.util.JsonAtributosValidator;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,11 @@ public class ProductoController {
     private final ProductoService productoService;
     private final JsonAtributosValidator jsonValidator;
 
+    @GetMapping
+    public ResponseEntity<List<ProductoResponseDTO>> listarProductos() {
+        return ResponseEntity.ok(productoService.listarActivos());
+    }
+
     @PostMapping
     public ResponseEntity<ProductoResponseDTO> crearProducto(
         @Valid @RequestBody ProductoRequestDTO requestDTO
@@ -29,5 +36,11 @@ public class ProductoController {
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarProducto(@PathVariable UUID id) {
+        productoService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

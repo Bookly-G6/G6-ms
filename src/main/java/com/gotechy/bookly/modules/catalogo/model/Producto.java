@@ -1,6 +1,7 @@
 package com.gotechy.bookly.modules.catalogo.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,10 +34,10 @@ public class Producto {
 
     // Costo para calcular márgenes de ganancia
     @Column(name = "precio_costo", nullable = false)
-    private Double precioCosto;
+    private BigDecimal precioCosto;
 
     @Column(name = "precio_actual", nullable = false)
-    private Double precioActual;
+    private BigDecimal precioActual;
 
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
@@ -68,4 +69,12 @@ public class Producto {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "atributos_especificos", columnDefinition = "jsonb")
     private Map<String, Object> atributosEspecificos;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "producto_autor",
+        joinColumns = @JoinColumn(name = "id_producto"),
+        inverseJoinColumns = @JoinColumn(name = "id_autor_artista")
+    )
+    private List<AutorArtista> autores;
 }
