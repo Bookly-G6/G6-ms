@@ -44,103 +44,69 @@ Tanto para crear (`POST`) como para actualizar (`PUT`), el backend espera recibi
 
 # Módulo 2: Logística y Envíos
 
-Todas las rutas de este módulo nacen del endpoint `/logistica`. Este módulo administra el flujo físico y digital de los pedidos una vez concretada una venta. Los IDs utilizados son de tipo **UUID**.
+Todas las rutas de este módulo nacen del endpoint `/envios`. Este módulo administra el flujo físico de los paquetes y mantiene una trazabilidad inmutable (historial) de cada cambio de estado. Los IDs utilizados son de tipo **UUID**.
 
 ## Endpoints Disponibles
 
-| Método   | Endpoint          | Descripción                                         | Requiere Body |
-| :------- | :---------------- | :-------------------------------------------------- | :-----------: |
-| `POST`   | `/logistica`      | Crea una nueva orden logística asociada a una venta |       Sí      |
-| `GET`    | `/logistica/{id}` | Obtiene los detalles de un envío específico         |       No      |
-| `GET`    | `/logistica`      | Obtiene el listado completo de envíos activos       |       No      |
-| `PUT`    | `/logistica/{id}` | Actualiza datos o estado de un envío                |       Sí      |
-| `DELETE` | `/logistica/{id}` | Realiza un borrado lógico (Soft Delete)             |       No      |
+| Método  | Endpoint                   | Descripción                                                  | Requiere Body |
+| :------ | :------------------------- | :----------------------------------------------------------- | :-----------: |
+| `POST`  | `/envios`                  | Inicializa un nuevo envío atado a una venta                  |       Sí      |
+| `PATCH` | `/envios/{idEnvio}/estado` | Actualiza el estado logístico y genera un registro histórico |       Sí      |
+| `GET`   | `/envios`                  | Obtiene el listado completo de envíos activos                |       No      |
+| `GET`   | `/envios/venta/{idVenta}`  | Obtiene los detalles logísticos usando el ID de la Venta     |       No      |
 
 ---
 
-## Payload de Creación y Actualización
+## Diccionario de Datos (Enums)
 
-La estructura del JSON depende del tipo de envío seleccionado.
+El sistema es estricto y solo acepta los siguientes valores para garantizar la integridad de las reglas de negocio.
 
-### Valores permitidos para `tipoEnvio`
+### Tipos de Envío Permitidos (`tipoEnvio`)
 
 * `DOMICILIO`
 * `RETIRO_SUCURSAL`
-* `DIGITAL`
+
+### Estados Logísticos Permitidos (`estadoLogistica` / `nuevoEstado`)
+
+* `EN_PREPARACION` (Estado inicial por defecto al crear)
+* `LISTO_PARA_RETIRO`
+* `DESPACHADO`
+* `EN_CAMINO`
+* `ENTREGADO`
+* `CANCELADO`
+* `DEVUELTO`
 
 ---
 
-### Escenario 1: Envío a Domicilio
+## Payload 1: Inicialización del Envío (`POST /envios`)
 
-Requiere información de la empresa de correo. El backend asigna automáticamente el estado inicial `PENDIENTE`.
+Se dispara automáticamente cuando una venta es confirmada. El sistema asignará el estado `EN_PREPARACION` por defecto. Si el tipo es `RETIRO_SUCURSAL`, el backend generará automáticamente un código alfanumérico (Ej: `RET-A1B2C3`).
 
-#### Ejemplo de Request
+### Ejemplo de Request
 
 ```json
 {
-  "idVenta": "88888888-4444-4444-4444-123456789012",
+  "idVenta": "77777777-7777-7777-7777-777777777777",
   "tipoEnvio": "DOMICILIO",
-  "empresaCorreo": "OCA",
-  "numeroTracking": "OCA-999888777",
-  "observaciones": "Entregar de 9 a 18hs"
+  "observaciones": "El timbre no funciona bien, golpear las manos por favor."
 }
 ```
 
-#### Resultado Esperado
-
-* Se crea la orden logística.
-* El estado inicial se registra como `PENDIENTE`.
-* Se almacenan los datos del correo y el número de tracking.
-
 ---
 
-### Escenario 2: Retiro en Sucursal
+## Payload 2: Actualización de Estado (`PATCH /envios/{idEnvio}/estado`)
 
-No deben enviarse datos de correo ni número de seguimiento. El backend genera automáticamente un código de retiro.
+Utilizado por los empleados para avanzar el paquete en el flujo logístico. Todo cambio realizado por este endpoint genera automáticamente un registro inmutable en la tabla `historial_envio` vinculando al empleado responsable.
 
-#### Ejemplo de Request
+### Ejemplo de Request
 
 ```json
 {
-  "idVenta": "99999999-5555-5555-5555-987654321098",
-  "tipoEnvio": "RETIRO_SUCURSAL",
-  "observaciones": "Pasa el titular con DNI"
+  "nuevoEstado": "DESPACHADO",
+  "numeroTracking": "AR-987654321X",
+  "empresaCorreo": "Andreani",
+  "idEmpleado": "e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2"
 }
 ```
 
-#### Resultado Esperado
-
-* Se crea la orden logística.
-* El estado inicial se registra como `PENDIENTE`.
-* El backend genera automáticamente un código de retiro.
-* Ejemplo de código generado: `BKL-1234`.
-
----
-
-### Escenario 3: Producto Digital
-
-No requiere datos de envío, correo ni seguimiento.
-
-#### Ejemplo de Request
-
-```json
-{
-  "idVenta": "77777777-3333-3333-3333-123456789012",
-  "tipoEnvio": "DIGITAL"
-}
-```
-
-#### Resultado Esperado
-
-* Se crea la orden logística.
-* El backend asigna automáticamente el estado `ENTREGADO`.
-* No se genera tracking ni código de retiro.
-
----
-
-## Consideraciones Generales
-
-* Todos los identificadores utilizados por la API son UUID.
-* Los endpoints `DELETE` realizan un borrado lógico (*Soft Delete*).
-* Las referencias enviadas en los payloads deben existir previamente en la base de datos.
-* Los estados logísticos son gestionados automáticamente según las reglas de negocio definidas para cada tipo de envío.
+> **Nota:** Los campos `numeroTracking` y `empresaCorreo` son opcionales y solo deben enviarse si el estado requiere datos de la transportista. El `idEmpleado` es obligatorio para mantener la auditoría.
