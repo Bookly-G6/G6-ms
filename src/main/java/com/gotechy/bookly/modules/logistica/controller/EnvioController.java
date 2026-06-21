@@ -1,13 +1,11 @@
 package com.gotechy.bookly.modules.logistica.controller;
 
+import com.gotechy.bookly.modules.logistica.dto.ActualizarEstadoRequestDTO;
 import com.gotechy.bookly.modules.logistica.dto.EnvioRequestDTO;
-import com.gotechy.bookly.modules.logistica.model.Envio;
-import com.gotechy.bookly.modules.logistica.service.EnvioService;
-import jakarta.persistence.EntityNotFoundException;
+import com.gotechy.bookly.modules.logistica.dto.EnvioResponseDTO;
+import com.gotechy.bookly.modules.logistica.services.EnvioService;
 import jakarta.validation.Valid;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,61 +13,44 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/logistica")
+@RequestMapping("/api/v1/envios")
 @RequiredArgsConstructor
 public class EnvioController {
 
     private final EnvioService envioService;
 
     @GetMapping
-    public ResponseEntity<List<Envio>> obtenerTodosLosEnvios() {
-        return ResponseEntity.ok(envioService.obtenerTodosLosEnvios());
+    public ResponseEntity<List<EnvioResponseDTO>> listarEnvios() {
+        return ResponseEntity.ok(envioService.listarEnviosActivos());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Envio> obtenerEnvio(@PathVariable UUID id) {
-        return ResponseEntity.ok(envioService.obtenerEnvio(id));
+    @GetMapping("/venta/{idVenta}")
+    public ResponseEntity<EnvioResponseDTO> obtenerEnvioPorVenta(
+        @PathVariable UUID idVenta
+    ) {
+        return ResponseEntity.ok(envioService.obtenerPorIdVenta(idVenta));
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> crearEnvio(
+    public ResponseEntity<EnvioResponseDTO> inicializarEnvio(
         @Valid @RequestBody EnvioRequestDTO dto
     ) {
-        Envio nuevoEnvio = envioService.crearEnvio(dto);
-
-        Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("mensaje", "Orden de logística creada con éxito");
-        respuesta.put("envio", nuevoEnvio);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
+        EnvioResponseDTO response = envioService.inicializarEnvio(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> actualizarEnvio(
-        @PathVariable UUID id,
-        @Valid @RequestBody EnvioRequestDTO dto
+    @PatchMapping("/{idEnvio}/estado")
+    public ResponseEntity<EnvioResponseDTO> actualizarEstado(
+        @PathVariable UUID idEnvio,
+        @Valid @RequestBody ActualizarEstadoRequestDTO dto
     ) {
-        Envio envioActualizado = envioService.actualizarEnvio(id, dto);
-
-        Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("mensaje", "Envío actualizado con éxito");
-        respuesta.put("envio", envioActualizado);
-
-        return ResponseEntity.ok(respuesta);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> eliminarEnvio(
-        @PathVariable UUID id
-    ) {
-        envioService.eliminarEnvio(id);
-
-        Map<String, String> respuesta = new HashMap<>();
-        respuesta.put(
-            "mensaje",
-            "Envío dado de baja (inactivado) correctamente"
+        EnvioResponseDTO response = envioService.actualizarEstado(
+            idEnvio,
+            dto.getNuevoEstado(),
+            dto.getNumeroTracking(),
+            dto.getEmpresaCorreo(),
+            dto.getIdEmpleado()
         );
-
-        return ResponseEntity.ok(respuesta);
+        return ResponseEntity.ok(response);
     }
 }

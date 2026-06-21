@@ -5,43 +5,50 @@ import com.gotechy.bookly.core.enums.TipoEnvio;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
-@Data
 @Entity
 @Table(name = "envio")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Envio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id_envio", updatable = false, nullable = false)
     private UUID idEnvio;
 
-    @Column(nullable = false)
+    @Column(name = "id_venta", nullable = false, unique = true)
     private UUID idVenta;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "tipo_envio", nullable = false, length = 50)
     private TipoEnvio tipoEnvio;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "estado_logistica", nullable = false, length = 50)
     private EstadoLogistica estadoLogistica;
 
-    // Estos campos son nulos por defecto, se llenan con el Envio
-    @Column(length = 100)
+    @Column(name = "codigo_retiro", length = 50)
+    private String codigoRetiro;
+
+    @Column(name = "empresa_correo", length = 100)
     private String empresaCorreo;
 
-    @Column(length = 50)
+    @Column(name = "numero_tracking", length = 100)
     private String numeroTracking;
 
-    @Column(length = 10)
-    private String codigoRetiro; // Ej: "BKL-9823" para que el cliente retire
-
-    private LocalDateTime fechaActualizacion;
-
-    @Column(length = 255)
+    @Column(name = "observaciones", columnDefinition = "TEXT")
     private String observaciones;
 
-    @Column(nullable = false)
+    @CreationTimestamp
+    @Column(name = "fecha_actualizacion")
+    private LocalDateTime fechaActualizacion;
+
+    @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 }
