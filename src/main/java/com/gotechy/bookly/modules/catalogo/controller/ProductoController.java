@@ -10,6 +10,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,6 +27,7 @@ public class ProductoController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductoResponseDTO> crearProducto(
         @Valid @RequestBody ProductoRequestDTO requestDTO
     ) {
@@ -39,6 +41,7 @@ public class ProductoController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> eliminarProducto(@PathVariable UUID id) {
         productoService.eliminar(id);
         return ResponseEntity.noContent().build();

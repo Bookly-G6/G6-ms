@@ -3,6 +3,7 @@ package com.gotechy.bookly.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -23,6 +24,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String PRODUCTOS_PATH = "/api/v1/productos/**";
+    private static final String ADMIN_ROLE = "ADMIN";
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
 
@@ -31,10 +35,12 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/v1/auth/**",
-                    "/api/v1/usuarios/**"
-                ).permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, PRODUCTOS_PATH).permitAll()
+                .requestMatchers(HttpMethod.POST, PRODUCTOS_PATH).hasRole(ADMIN_ROLE)
+                .requestMatchers(HttpMethod.PUT, PRODUCTOS_PATH).hasRole(ADMIN_ROLE)
+                .requestMatchers(HttpMethod.DELETE, PRODUCTOS_PATH).hasRole(ADMIN_ROLE)
+                .requestMatchers("/api/v1/usuarios/**").hasRole(ADMIN_ROLE)
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -46,8 +52,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
