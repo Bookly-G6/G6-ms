@@ -3,12 +3,16 @@ package com.gotechy.bookly.modules.accesos.repository;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.gotechy.bookly.modules.accesos.model.Usuario;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
+    @EntityGraph(attributePaths = { "rol", "persona" })
     Optional<Usuario> findByEmail(String email);
+
     boolean existsByEmail(String email);
+
     boolean existsByEmailAndIdUsuarioNot(String email, UUID idUsuario);
 }
