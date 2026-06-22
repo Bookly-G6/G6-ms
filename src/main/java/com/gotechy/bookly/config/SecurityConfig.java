@@ -39,6 +39,7 @@ public class SecurityConfig {
 
     private static final String ADMIN_ROLE = "ADMIN";
     private static final String CLIENTE_ROLE = "CLIENTE";
+    private static final String VENDEDOR_ROLE = "VENDEDOR";
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
@@ -109,7 +110,7 @@ public class SecurityConfig {
 
                         // Ventas: checkout y mis-ordenes para CLIENTE/ADMIN, listar todas solo ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/v1/ventas/checkout")
-                        .hasAnyRole(ADMIN_ROLE, CLIENTE_ROLE)
+                        .hasAnyRole(ADMIN_ROLE, CLIENTE_ROLE, VENDEDOR_ROLE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/ventas/mis-ordenes")
                         .hasAnyRole(ADMIN_ROLE, CLIENTE_ROLE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/ventas/**")

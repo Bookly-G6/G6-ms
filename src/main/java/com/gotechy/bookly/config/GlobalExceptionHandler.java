@@ -1,7 +1,8 @@
 package com.gotechy.bookly.config;
 
-import java.time.LocalDateTime; // Asegurate de que esta ruta coincida donde creaste ApiError
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -49,8 +50,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.NOT_FOUND.value(),
             "Not Found",
+            "NOT_FOUND",
             ex.getMessage(),
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
         );
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
@@ -65,8 +68,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
+            "INVALID_JSON",
             "El cuerpo de la solicitud no es un JSON válido.",
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of(ex.getMessage())
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
@@ -80,8 +85,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.CONFLICT.value(),
             "Conflict",
+            "DATA_CONFLICT",
             "No se pudo completar la operación por un conflicto en los datos.",
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
         );
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
@@ -95,8 +102,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.UNAUTHORIZED.value(),
             "Unauthorized",
+            "BAD_CREDENTIALS",
             "Email o contraseña incorrectos.",
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
         );
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
@@ -110,8 +119,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.FORBIDDEN.value(),
             "Forbidden",
+            "ACCESS_DENIED",
             "No tienes permisos para acceder a este recurso.",
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
         );
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
@@ -125,8 +136,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             "Internal Server Error",
+            "INTERNAL_ERROR",
             "Ocurrió un error inesperado.",
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -140,8 +153,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
+            "BAD_REQUEST",
             ex.getMessage(), // Acá viaja tu mensaje de error personalizado
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }

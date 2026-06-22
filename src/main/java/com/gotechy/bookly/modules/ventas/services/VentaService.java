@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gotechy.bookly.core.enums.TipoEnvio;
 import com.gotechy.bookly.modules.accesos.model.Usuario;
+import com.gotechy.bookly.modules.accesos.model.Persona;
+import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
 import com.gotechy.bookly.modules.catalogo.model.Producto;
 import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
@@ -55,9 +57,14 @@ import lombok.RequiredArgsConstructor;
 public class VentaService {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_VENDEDOR = "ROLE_VENDEDOR";
     private static final String MOVIMIENTO_SALIDA = "SALIDA";
     private static final String ESTADO_CONFIRMADA = "CONFIRMADA";
     private static final String ORIGEN_WEB = "WEB";
+    private static final String ORIGEN_LOCAL = "LOCAL";
+    private static final String DNI_CONSUMIDOR_FINAL = "";
+    private static final String NOMBRE_CONSUMIDOR_FINAL = "Consumidor";
+    private static final String APELLIDO_CONSUMIDOR_FINAL = "Final";
 
     private final VentaRepository ventaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
@@ -70,20 +77,30 @@ public class VentaService {
     private final EmpleadoRepository empleadoRepository;
     private final ProductoRepository productoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final PersonaRepository personaRepository;
     private final EnvioService envioService;
 
     @Transactional
     public VentaResponseDTO checkout(VentaCheckoutRequestDTO request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean esAdmin = esAdmin(authentication);
+        boolean esVendedor = esVendedor(authentication);
 
-        UUID idCliente = resolverIdCliente(request.getIdCliente(), authentication, esAdmin);
+        UUID idCliente = resolverIdCliente(request.getIdCliente(), authentication, esAdmin, esVendedor);
         UUID idEmpleado = resolverIdEmpleado(request.getIdEmpleado());
         EstadoVentaCatalog estadoVenta = obtenerEstadoConfirmada();
 
+        String origenVenta = Objects.requireNonNull(request.getOrigenVenta(), "El origenVenta es obligatorio")
+            .trim()
+            .toUpperCase();
+
+        if (esVendedor) {
+            origenVenta = ORIGEN_LOCAL;
+        }
+
         Venta venta = new Venta();
         venta.setFecha(LocalDateTime.now());
-        venta.setOrigenVenta(request.getOrigenVenta().trim().toUpperCase());
+        venta.setOrigenVenta(origenVenta);
         venta.setIdEstadoVenta(estadoVenta.getIdEstadoVenta());
         venta.setIdSucursal(Objects.requireNonNull(request.getIdSucursal(), "El idSucursal es obligatorio"));
         venta.setIdCliente(idCliente);
@@ -135,7 +152,7 @@ public class VentaService {
             throw new IllegalArgumentException("El total abonado es menor al total de la venta");
         }
 
-        EnvioResponseDTO envio = crearEnvioSiCorresponde(ventaGuardada, request);
+        EnvioResponseDTO envio = crearEnvioSiCorresponde(ventaGuardada, request, esVendedor);
 
         return construirRespuesta(ventaGuardada, detalles, totalPagado, envio);
     }
@@ -175,9 +192,20 @@ public class VentaService {
         return construirRespuesta(venta);
     }
 
-    private UUID resolverIdCliente(UUID idClienteRequest, Authentication authentication, boolean esAdmin) {
+    private UUID resolverIdCliente(UUID idClienteRequest, Authentication authentication, boolean esAdmin, boolean esVendedor) {
         if (esAdmin) {
             return idClienteRequest;
+        }
+
+        if (esVendedor) {
+            if (idClienteRequest != null) {
+                if (!clienteRepository.existsById(idClienteRequest)) {
+                    throw new EntityNotFoundException("Cliente no encontrado: " + idClienteRequest);
+                }
+                return idClienteRequest;
+            }
+
+            return obtenerOcrearConsumidorFinal().getIdCliente();
         }
 
         return resolverClientePorUsuario(authentication.getName()).getIdCliente();
@@ -249,7 +277,11 @@ public class VentaService {
         return totalPagado;
     }
 
-    private EnvioResponseDTO crearEnvioSiCorresponde(Venta venta, VentaCheckoutRequestDTO request) {
+    private EnvioResponseDTO crearEnvioSiCorresponde(Venta venta, VentaCheckoutRequestDTO request, boolean esVendedor) {
+        if (esVendedor) {
+            return null;
+        }
+
         boolean origenWeb = ORIGEN_WEB.equalsIgnoreCase(venta.getOrigenVenta());
         boolean crearEnvio = Boolean.TRUE.equals(request.getGenerarEnvio()) || origenWeb;
 
@@ -335,5 +367,32 @@ public class VentaService {
     private boolean esAdmin(Authentication authentication) {
         return authentication.getAuthorities().stream()
             .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
+    }
+
+    private boolean esVendedor(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+            .anyMatch(authority -> ROLE_VENDEDOR.equals(authority.getAuthority()));
+    }
+
+    private Cliente obtenerOcrearConsumidorFinal() {
+        Persona personaConsumidorFinal = personaRepository.findByDni(DNI_CONSUMIDOR_FINAL)
+            .orElseGet(() -> {
+                Persona persona = new Persona();
+                persona.setIdPersona(UUID.randomUUID());
+                persona.setNombre(NOMBRE_CONSUMIDOR_FINAL);
+                persona.setApellido(APELLIDO_CONSUMIDOR_FINAL);
+                persona.setDni(DNI_CONSUMIDOR_FINAL);
+                persona.setTelefono(null);
+                return personaRepository.save(persona);
+            });
+
+        return clienteRepository.findByIdPersona(personaConsumidorFinal.getIdPersona())
+            .orElseGet(() -> {
+                Cliente cliente = new Cliente();
+                cliente.setIdCliente(UUID.randomUUID());
+                cliente.setIdPersona(personaConsumidorFinal.getIdPersona());
+                cliente.setPuntosFidelidad(0);
+                return clienteRepository.save(cliente);
+            });
     }
 }

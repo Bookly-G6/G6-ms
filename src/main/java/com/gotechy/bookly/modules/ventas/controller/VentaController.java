@@ -28,7 +28,7 @@ public class VentaController {
     private final VentaService ventaService;
 
     @PostMapping("/checkout")
-    @PreAuthorize("hasAnyRole('ADMIN','CLIENTE')")
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENTE','VENDEDOR')")
     public ResponseEntity<VentaResponseDTO> checkout(@Valid @RequestBody VentaCheckoutRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ventaService.checkout(request));
     }

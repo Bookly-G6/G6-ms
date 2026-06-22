@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,10 +19,11 @@ import lombok.NoArgsConstructor;
 public class Rol {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rol_seq")
+    @SequenceGenerator(name = "rol_seq", sequenceName = "rol_id_rol_seq", allocationSize = 1)
     @Column(name = "id_rol")
     private Integer idRol;
 
-    @Column(name = "nombre_rol", nullable = false, unique = true, length = 255)
+    @Column(name = "nombre_rol", nullable = false, length = 255)
     private String nombreRol;
 }
