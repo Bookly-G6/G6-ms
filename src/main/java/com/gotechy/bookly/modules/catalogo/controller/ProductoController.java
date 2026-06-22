@@ -3,7 +3,7 @@ package com.gotechy.bookly.modules.catalogo.controller;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
 import com.gotechy.bookly.modules.catalogo.service.ProductoService;
-import com.gotechy.bookly.modules.catalogo.util.JsonAtributosValidator;
+import com.gotechy.bookly.core.utils.JsonAtributosValidator;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

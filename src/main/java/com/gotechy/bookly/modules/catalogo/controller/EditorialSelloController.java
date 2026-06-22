@@ -1,3 +1,5 @@
+package com.gotechy.bookly.modules.catalogo.controller;
+
 import com.gotechy.bookly.modules.catalogo.model.EditorialSello;
 import com.gotechy.bookly.modules.catalogo.service.EditorialSelloService;
 import java.util.List;
@@ -7,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/editorial-sello")
+@RequestMapping("/api/v1/editoriales")
 @RequiredArgsConstructor
 public class EditorialSelloController {
 

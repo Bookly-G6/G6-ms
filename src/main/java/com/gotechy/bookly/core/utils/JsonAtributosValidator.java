@@ -1,6 +1,7 @@
-package com.gotechy.bookly.modules.catalogo.util;
+package com.gotechy.bookly.core.utils;
 
 import java.util.Map;
+
 import org.springframework.stereotype.Component;
 
 @Component
