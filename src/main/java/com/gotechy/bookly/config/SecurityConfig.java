@@ -1,6 +1,5 @@
 package com.gotechy.bookly.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -25,7 +26,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private static final String PRODUCTOS_PATH = "/api/v1/productos/**";
+    private static final String CATEGORIAS_PATH = "/api/v1/categorias/**";
+    private static final String API_V1_PATH = "/api/v1/**";
     private static final String ADMIN_ROLE = "ADMIN";
+    private static final String CLIENTE_ROLE = "CLIENTE";
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
@@ -37,10 +41,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, PRODUCTOS_PATH).permitAll()
-                .requestMatchers(HttpMethod.POST, PRODUCTOS_PATH).hasRole(ADMIN_ROLE)
-                .requestMatchers(HttpMethod.PUT, PRODUCTOS_PATH).hasRole(ADMIN_ROLE)
-                .requestMatchers(HttpMethod.DELETE, PRODUCTOS_PATH).hasRole(ADMIN_ROLE)
                 .requestMatchers("/api/v1/usuarios/**").hasRole(ADMIN_ROLE)
+                .requestMatchers(HttpMethod.GET, CATEGORIAS_PATH).permitAll()
+                .requestMatchers(HttpMethod.POST, API_V1_PATH).hasRole(ADMIN_ROLE)
+                .requestMatchers(HttpMethod.PUT, API_V1_PATH).hasRole(ADMIN_ROLE)
+                .requestMatchers(HttpMethod.PATCH, API_V1_PATH).hasRole(ADMIN_ROLE)
+                .requestMatchers(HttpMethod.DELETE, API_V1_PATH).hasRole(ADMIN_ROLE)
+                .requestMatchers(HttpMethod.GET, API_V1_PATH).hasAnyRole(ADMIN_ROLE, CLIENTE_ROLE)
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -1,15 +1,28 @@
 package com.gotechy.bookly.modules.catalogo.service;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
-import com.gotechy.bookly.modules.catalogo.model.*;
-import com.gotechy.bookly.modules.catalogo.repository.*;
+import com.gotechy.bookly.modules.catalogo.model.AutorArtista;
+import com.gotechy.bookly.modules.catalogo.model.Categoria;
+import com.gotechy.bookly.modules.catalogo.model.EditorialSello;
+import com.gotechy.bookly.modules.catalogo.model.Producto;
+import com.gotechy.bookly.modules.catalogo.model.RangoEtario;
+import com.gotechy.bookly.modules.catalogo.model.TipoProducto;
+import com.gotechy.bookly.modules.catalogo.repository.AutorArtistaRepository;
+import com.gotechy.bookly.modules.catalogo.repository.CategoriaRepository;
+import com.gotechy.bookly.modules.catalogo.repository.EditorialSelloRepository;
+import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
+import com.gotechy.bookly.modules.catalogo.repository.RangoEtarioRepository;
+import com.gotechy.bookly.modules.catalogo.repository.TipoProductoRepository;
+
 import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -27,30 +40,52 @@ public class ProductoService {
             .findByActivoTrue()
             .stream()
             .map(this::mapearAResponseDTO)
-            .collect(Collectors.toList());
+            .toList();
+    }
+
+    public ProductoResponseDTO obtenerActivoPorId(UUID idProducto) {
+        UUID productoId = Objects.requireNonNull(idProducto, "El idProducto no puede ser nulo");
+
+        Producto producto = productoRepository
+            .findById(productoId)
+            .orElseThrow(() ->
+                new EntityNotFoundException("Producto con ID " + productoId + " no encontrado")
+            );
+
+        if (producto.getActivo() == null || !producto.getActivo()) {
+            throw new EntityNotFoundException("Producto con ID " + productoId + " no encontrado");
+        }
+
+        return mapearAResponseDTO(producto);
     }
 
     public ProductoResponseDTO crearProducto(ProductoRequestDTO dto) {
+        Integer tipoProductoId = Objects.requireNonNull(dto.getIdTipoProducto(), "El idTipoProducto es obligatorio");
+        Integer editorialSelloId = Objects.requireNonNull(dto.getIdEditorialSello(), "El idEditorialSello es obligatorio");
+        Integer rangoEtarioId = Objects.requireNonNull(dto.getIdRangoEtario(), "El idRangoEtario es obligatorio");
+        List<Integer> categoriasIds = Objects.requireNonNull(dto.getIdsCategorias(), "Los idsCategorias son obligatorios");
+        List<Integer> autoresIds = Objects.requireNonNull(dto.getIdsAutores(), "Los idsAutores son obligatorios");
+
         TipoProducto tipoProducto = tipoProductoRepository
-            .findById(dto.getIdTipoProducto())
+            .findById(tipoProductoId)
             .orElseThrow(() ->
                 new EntityNotFoundException("Tipo de producto no encontrado")
             );
 
         EditorialSello editorialSello = editorialSelloRepository
-            .findById(dto.getIdEditorialSello())
+            .findById(editorialSelloId)
             .orElseThrow(() ->
                 new EntityNotFoundException("Editorial o Sello no encontrado")
             );
 
         RangoEtario rangoEtario = rangoEtarioRepository
-            .findById(dto.getIdRangoEtario())
+            .findById(rangoEtarioId)
             .orElseThrow(() ->
                 new EntityNotFoundException("Rango etario no encontrado")
             );
 
         List<Categoria> categorias = categoriaRepository.findAllById(
-            dto.getIdsCategorias()
+            categoriasIds
         );
         if (categorias.isEmpty()) {
             throw new EntityNotFoundException(
@@ -59,7 +94,7 @@ public class ProductoService {
         }
 
         List<AutorArtista> autores = autorArtistaRepository.findAllById(
-            dto.getIdsAutores()
+            autoresIds
         );
         if (autores.isEmpty()) {
             throw new EntityNotFoundException(
@@ -98,7 +133,7 @@ public class ProductoService {
             .getAutores()
             .stream()
             .map(AutorArtista::getNombre)
-            .collect(Collectors.toList());
+            .toList();
         response.setAutores(nombresAutores);
 
         // Aplanamos las relaciones para el frontend
@@ -115,7 +150,7 @@ public class ProductoService {
             .getCategorias()
             .stream()
             .map(Categoria::getNombreCategoria)
-            .collect(Collectors.toList());
+            .toList();
         response.setCategorias(nombresCategorias);
 
         response.setAtributosEspecificos(producto.getAtributosEspecificos());
@@ -124,11 +159,12 @@ public class ProductoService {
     }
 
     public void eliminar(UUID id) {
+        UUID productoId = Objects.requireNonNull(id, "El id del producto es obligatorio");
         Producto producto = productoRepository
-            .findById(id)
+            .findById(productoId)
             .orElseThrow(() ->
                 new EntityNotFoundException(
-                    "Producto con ID " + id + " no encontrado"
+                    "Producto con ID " + productoId + " no encontrado"
                 )
             );
 

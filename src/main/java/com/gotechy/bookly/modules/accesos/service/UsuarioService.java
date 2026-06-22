@@ -1,5 +1,13 @@
 package com.gotechy.bookly.modules.accesos.service;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.gotechy.bookly.modules.accesos.dto.UsuarioRequestDTO;
 import com.gotechy.bookly.modules.accesos.dto.UsuarioResponseDTO;
 import com.gotechy.bookly.modules.accesos.dto.UsuarioUpdateRequestDTO;
@@ -9,14 +17,9 @@ import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.RolRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
+
 import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
