@@ -1,12 +1,17 @@
 package com.gotechy.bookly.config;
 
-import com.gotechy.bookly.core.exception.ApiError; // Asegurate de que esta ruta coincida donde creaste ApiError
+import com.gotechy.bookly.core.exception.ApiError;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,13 +48,89 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.NOT_FOUND.value(),
             "Not Found",
+            "RESOURCE_NOT_FOUND",
+
             ex.getMessage(),
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
         );
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
-    // 3. Manejo genérico "Atrapa todo"
+    // 3. Manejo genérico de errores no controlados
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleHttpMessageNotReadableException(
+        HttpMessageNotReadableException ex,
+        WebRequest request
+    ) {
+        ApiError error = new ApiError(
+            LocalDateTime.now(),
+            HttpStatus.BAD_REQUEST.value(),
+            "Bad Request",
+            "INVALID_JSON",
+
+            "El cuerpo de la solicitud no es un JSON válido.",
+            request.getDescription(false).replace("uri=", ""),
+            List.of(ex.getMessage())
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrityViolationException(
+        DataIntegrityViolationException ex,
+        WebRequest request
+    ) {
+        ApiError error = new ApiError(
+            LocalDateTime.now(),
+            HttpStatus.CONFLICT.value(),
+            "Conflict",
+            "DATA_CONFLICT",
+            "No se pudo completar la operación por un conflicto en los datos.",
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
+        );
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiError> handleBadCredentialsException(
+        BadCredentialsException ex,
+        WebRequest request
+    ) {
+        ApiError error = new ApiError(
+            LocalDateTime.now(),
+            HttpStatus.UNAUTHORIZED.value(),
+            "Unauthorized",
+            "BAD_CREDENTIALS",
+            "Email o contraseña incorrectos.",
+            request.getDescription(false).replace("uri=", ""),
+            List.of()
+        );
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDeniedException(
+        AccessDeniedException ex,
+        WebRequest request
+    ) {
+        ApiError error = new ApiError(
+            LocalDateTime.now(),
+            HttpStatus.FORBIDDEN.value(),
+            "Forbidden",
+            "ACCESS_DENIED",
+            ex.getMessage() == null || ex.getMessage().isBlank()
+                ? "No tienes permisos para acceder a este recurso."
+                : ex.getMessage(),
+            request.getDescription(false).replace("uri=", ""),
+            java.util.List.of(
+                "Se requiere rol ADMIN o perfil de cliente según el recurso."
+            )
+        );
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGlobalException(
         Exception ex,
@@ -59,8 +140,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             "Internal Server Error",
-            "Ocurrió un error inesperado en el servidor.",
-            request.getDescription(false).replace("uri=", "")
+            "INTERNAL_ERROR",
+            "Ocurrió un error inesperado.",
+            request.getDescription(false).replace("uri=", ""),
+            null
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -74,8 +157,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
+            "BUSINESS_RULE_ERROR",
             ex.getMessage(), // Acá viaja tu mensaje de error personalizado
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            null
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }

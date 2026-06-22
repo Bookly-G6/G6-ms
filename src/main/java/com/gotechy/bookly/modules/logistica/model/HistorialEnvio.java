@@ -2,6 +2,7 @@ package com.gotechy.bookly.modules.logistica.model;
 
 import com.gotechy.bookly.core.enums.EstadoLogistica;
 import jakarta.persistence.*;
+import jakarta.persistence.SequenceGenerator;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -17,7 +18,8 @@ import org.hibernate.annotations.CreationTimestamp;
 public class HistorialEnvio {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "historial_envio_seq")
+    @SequenceGenerator(name = "historial_envio_seq", sequenceName = "historial_envio_id_historial_seq", allocationSize = 1)
     @Column(name = "id_historial")
     private Integer idHistorial;
 

@@ -1,6 +1,7 @@
 package com.gotechy.bookly.modules.catalogo.model;
 
 import jakarta.persistence.*;
+import jakarta.persistence.SequenceGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,7 +14,8 @@ import lombok.NoArgsConstructor;
 public class AutorArtista {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "autor_artista_seq")
+    @SequenceGenerator(name = "autor_artista_seq", sequenceName = "autor_artista_id_autor_artista_seq", allocationSize = 1)
     @Column(name = "id_autor_artista")
     private Integer idAutorArtista;
 
