@@ -25,6 +25,13 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.listarActivos());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductoResponseDTO> obtenerProductoPorId(
+        @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(productoService.obtenerPorId(id));
+    }
+
     @PostMapping
     public ResponseEntity<ProductoResponseDTO> crearProducto(
         @Valid @RequestBody ProductoRequestDTO requestDTO
@@ -38,9 +45,30 @@ public class ProductoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductoResponseDTO> actualizarProducto(
+        @PathVariable UUID id,
+        @Valid @RequestBody ProductoRequestDTO requestDTO
+    ) {
+        jsonValidator.validarAtributos(requestDTO.getAtributosEspecificos());
+
+        ProductoResponseDTO response = productoService.actualizarProducto(
+            id,
+            requestDTO
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable UUID id) {
+    public ResponseEntity<java.util.Map<String, String>> eliminarProducto(
+        @PathVariable UUID id
+    ) {
         productoService.eliminar(id);
-        return ResponseEntity.noContent().build();
+
+        java.util.Map<String, String> respuesta = new java.util.HashMap<>();
+        respuesta.put("mensaje", "Producto eliminado correctamente");
+
+        return ResponseEntity.ok(respuesta);
     }
 }
