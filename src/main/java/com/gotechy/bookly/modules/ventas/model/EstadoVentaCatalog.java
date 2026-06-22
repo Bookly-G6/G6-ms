@@ -1,0 +1,24 @@
+package com.gotechy.bookly.modules.ventas.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "estado_venta")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class EstadoVentaCatalog {
+
+    @Id
+    @Column(name = "id_estado_venta")
+    private Integer idEstadoVenta;
+
+    @Column(name = "nombre_estado", nullable = false)
+    private String nombreEstado;
+}

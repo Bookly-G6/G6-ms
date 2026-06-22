@@ -1,17 +1,24 @@
 package com.gotechy.bookly.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
 @Service
 public class JwtService {
@@ -32,12 +39,33 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
+        List<String> roles = userDetails.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
+
         return Jwts.builder()
             .subject(userDetails.getUsername())
+            .claim("roles", roles)
             .issuedAt(new Date(System.currentTimeMillis()))
             .expiration(new Date(System.currentTimeMillis() + expiration))
             .signWith(getSigningKey())
             .compact();
+    }
+
+    public String generateToken(UserDetails userDetails, Map<String, Object> extraClaims) {
+        List<String> roles = userDetails.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
+
+        var builder = Jwts.builder()
+            .subject(userDetails.getUsername())
+            .claim("roles", roles)
+            .issuedAt(new Date(System.currentTimeMillis()))
+            .expiration(new Date(System.currentTimeMillis() + expiration));
+
+        extraClaims.forEach(builder::claim);
+
+        return builder.signWith(getSigningKey()).compact();
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {

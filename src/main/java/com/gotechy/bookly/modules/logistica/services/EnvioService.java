@@ -1,17 +1,27 @@
 package com.gotechy.bookly.modules.logistica.services;
 
 import com.gotechy.bookly.core.enums.EstadoLogistica;
+import com.gotechy.bookly.modules.accesos.model.Usuario;
+import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
 import com.gotechy.bookly.modules.logistica.dto.EnvioRequestDTO;
 import com.gotechy.bookly.modules.logistica.dto.EnvioResponseDTO;
 import com.gotechy.bookly.modules.logistica.model.Envio;
 import com.gotechy.bookly.modules.logistica.model.HistorialEnvio;
 import com.gotechy.bookly.modules.logistica.repository.EnvioRepository;
 import com.gotechy.bookly.modules.logistica.repository.HistorialEnvioRepository;
+import com.gotechy.bookly.modules.ventas.model.Cliente;
+import com.gotechy.bookly.modules.ventas.model.Venta;
+import com.gotechy.bookly.modules.ventas.repository.ClienteRepository;
+import com.gotechy.bookly.modules.ventas.repository.VentaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,19 +29,18 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EnvioService {
 
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+
     private final EnvioRepository envioRepository;
     private final HistorialEnvioRepository historialEnvioRepository;
+    private final VentaRepository ventaRepository;
+    private final ClienteRepository clienteRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Transactional
     public EnvioResponseDTO inicializarEnvio(EnvioRequestDTO requestDTO) {
-        if (
-            envioRepository
-                .findByIdVentaAndActivoTrue(requestDTO.getIdVenta())
-                .isPresent()
-        ) {
-            throw new IllegalArgumentException(
-                "La venta especificada ya tiene un envío en curso."
-            );
+        if (envioRepository.findByIdVentaAndActivoTrue(requestDTO.getIdVenta()).isPresent()) {
+            throw new IllegalArgumentException("La venta especificada ya tiene un envío en curso.");
         }
 
         Envio nuevoEnvio = new Envio();
@@ -45,66 +54,101 @@ public class EnvioService {
         }
 
         Envio envioGuardado = envioRepository.save(nuevoEnvio);
-
-        registrarHistorial(
-            envioGuardado,
-            null,
-            EstadoLogistica.EN_PREPARACION,
-            "Envío inicializado por el sistema",
-            null
-        );
+        registrarHistorial(envioGuardado, null, EstadoLogistica.EN_PREPARACION,
+            "Envío inicializado por el sistema", null);
 
         return mapearAResponseDTO(envioGuardado);
     }
 
     @Transactional
-    public EnvioResponseDTO actualizarEstado(
-        UUID idEnvio,
-        EstadoLogistica nuevoEstado,
-        String tracking,
-        String correo,
-        UUID idEmpleado
-    ) {
-        Envio envio = envioRepository
-            .findById(idEnvio)
-            .orElseThrow(() ->
-                new EntityNotFoundException("Envío no encontrado")
-            );
+    public EnvioResponseDTO actualizarEstado(UUID idEnvio, EstadoLogistica nuevoEstado,
+        String tracking, String correo, UUID idEmpleado) {
+        Envio envio = envioRepository.findById(idEnvio)
+            .orElseThrow(() -> new EntityNotFoundException("Envío no encontrado"));
 
         EstadoLogistica estadoAnterior = envio.getEstadoLogistica();
-
-        // Actualiza los datos del envío
         envio.setEstadoLogistica(nuevoEstado);
         if (tracking != null) envio.setNumeroTracking(tracking);
         if (correo != null) envio.setEmpresaCorreo(correo);
 
         Envio envioActualizado = envioRepository.save(envio);
-
-        // Guarda el movimiento en el historial
-        registrarHistorial(
-            envioActualizado,
-            estadoAnterior,
-            nuevoEstado,
-            "Cambio de estado logístico",
-            idEmpleado
-        );
+        registrarHistorial(envioActualizado, estadoAnterior, nuevoEstado,
+            "Cambio de estado logístico", idEmpleado);
 
         return mapearAResponseDTO(envioActualizado);
     }
 
-    private void registrarHistorial(
-        Envio envio,
-        EstadoLogistica estadoAnterior,
-        EstadoLogistica estadoNuevo,
-        String observaciones,
-        UUID idEmpleado
-    ) {
+    @Transactional(readOnly = true)
+    public List<EnvioResponseDTO> listarEnvios() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (esAdmin(auth)) {
+            return envioRepository.findByActivoTrue().stream()
+                .map(this::mapearAResponseDTO)
+                .collect(Collectors.toList());
+        }
+
+        // CLIENTE: solo sus propios envíos
+        UUID idCliente = resolverIdCliente(auth.getName());
+        Set<UUID> idsVentasCliente = ventaRepository.findByIdClienteOrderByFechaDesc(idCliente)
+            .stream().map(Venta::getIdVenta).collect(Collectors.toSet());
+
+        return envioRepository.findByIdVentaInAndActivoTrue(idsVentasCliente).stream()
+            .map(this::mapearAResponseDTO)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public EnvioResponseDTO obtenerPorIdVenta(UUID idVenta) {
+        Envio envio = envioRepository.findByIdVentaAndActivoTrue(idVenta)
+            .orElseThrow(() -> new EntityNotFoundException(
+                "No se encontró un envío activo para la venta solicitada"));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!esAdmin(auth)) {
+            verificarPropiedadVenta(idVenta, auth.getName());
+        }
+
+        return mapearAResponseDTO(envio);
+    }
+
+    // Método legado para uso interno desde VentaService
+    @Transactional(readOnly = true)
+    public List<EnvioResponseDTO> listarEnviosActivos() {
+        return envioRepository.findByActivoTrue().stream()
+            .map(this::mapearAResponseDTO)
+            .collect(Collectors.toList());
+    }
+
+    private void verificarPropiedadVenta(UUID idVenta, String email) {
+        Venta venta = ventaRepository.findById(idVenta)
+            .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada"));
+        UUID idCliente = resolverIdCliente(email);
+        if (!idCliente.equals(venta.getIdCliente())) {
+            throw new AccessDeniedException("No tienes permiso para ver el envío de esta venta.");
+        }
+    }
+
+    private UUID resolverIdCliente(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        return clienteRepository.findByIdPersona(usuario.getPersona().getIdPersona())
+            .map(Cliente::getIdCliente)
+            .orElseThrow(() -> new AccessDeniedException("El usuario no tiene perfil de cliente."));
+    }
+
+    private boolean esAdmin(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> ROLE_ADMIN.equals(a.getAuthority()));
+    }
+
+    private void registrarHistorial(Envio envio, EstadoLogistica estadoAnterior,
+        EstadoLogistica estadoNuevo, String observaciones, UUID idEmpleado) {
         HistorialEnvio historial = new HistorialEnvio();
         historial.setEnvio(envio);
         historial.setEstadoAnterior(estadoAnterior);
         historial.setEstadoNuevo(estadoNuevo);
         historial.setObservaciones(observaciones);
-        historial.setIdEmpleado(idEmpleado); // Quién hizo el cambio
+        historial.setIdEmpleado(idEmpleado);
         historialEnvioRepository.save(historial);
     }
 
@@ -121,28 +165,8 @@ public class EnvioService {
         return dto;
     }
 
-    public List<EnvioResponseDTO> listarEnviosActivos() {
-        return envioRepository
-            .findByActivoTrue()
-            .stream()
-            .map(this::mapearAResponseDTO)
-            .collect(Collectors.toList());
-    }
-
-    public EnvioResponseDTO obtenerPorIdVenta(UUID idVenta) {
-        Envio envio = envioRepository
-            .findByIdVentaAndActivoTrue(idVenta)
-            .orElseThrow(() ->
-                new EntityNotFoundException(
-                    "No se encontró un envío activo para la venta solicitada"
-                )
-            );
-        return mapearAResponseDTO(envio);
-    }
-
     private String generarCodigoRetiro() {
-        return (
-            "RET-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase()
-        );
+        return "RET-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     }
 }
+

@@ -3,6 +3,7 @@ package com.gotechy.bookly.modules.accesos.service;
 import com.gotechy.bookly.config.JwtService;
 import com.gotechy.bookly.modules.accesos.dto.AuthResponseDTO;
 import com.gotechy.bookly.modules.accesos.dto.LoginRequestDTO;
+import com.gotechy.bookly.modules.accesos.dto.MeResponseDTO;
 import com.gotechy.bookly.modules.accesos.dto.RegisterRequestDTO;
 import com.gotechy.bookly.modules.accesos.model.Persona;
 import com.gotechy.bookly.modules.accesos.model.Rol;
@@ -60,11 +61,14 @@ public class AuthService {
         usuarioRepository.saveAndFlush(usuario);
 
         String token = jwtService.generateToken(usuario);
+        String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombreRol().trim().toUpperCase() : "CLIENTE";
         return new AuthResponseDTO(
             token,
+            usuario.getIdUsuario(),
             usuario.getEmail(),
             persona.getNombre(),
-            persona.getApellido()
+            persona.getApellido(),
+            rolNombre
         );
     }
 
@@ -82,11 +86,28 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(usuario);
+        String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombreRol().trim().toUpperCase() : "CLIENTE";
         return new AuthResponseDTO(
             token,
+            usuario.getIdUsuario(),
             usuario.getEmail(),
             usuario.getPersona().getNombre(),
-            usuario.getPersona().getApellido()
+            usuario.getPersona().getApellido(),
+            rolNombre
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public MeResponseDTO getCurrentUser(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Usuario no encontrado"));
+        String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombreRol().trim().toUpperCase() : "CLIENTE";
+        return new MeResponseDTO(
+            usuario.getIdUsuario(),
+            usuario.getEmail(),
+            usuario.getPersona().getNombre(),
+            usuario.getPersona().getApellido(),
+            rolNombre
         );
     }
 }
