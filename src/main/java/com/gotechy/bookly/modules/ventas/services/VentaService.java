@@ -85,18 +85,19 @@ public class VentaService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean esAdmin = esAdmin(authentication);
         boolean esVendedor = esVendedor(authentication);
-        String origenVenta = request.getOrigenVenta().trim().toUpperCase();
 
+        // Una sola declaración de origenVenta
+        String origenVenta = Objects.requireNonNull(request.getOrigenVenta(), "El origenVenta es obligatorio")
+                .trim()
+                .toUpperCase();
 
+        // Resolver cliente y empleado
         UUID idCliente = resolverIdCliente(request.getIdCliente(), authentication, esAdmin, esVendedor);
         UUID idEmpleado = resolverIdEmpleado(request.getIdEmpleado(), origenVenta);
 
         EstadoVentaCatalog estadoVenta = obtenerEstadoConfirmada();
 
-        String origenVenta = Objects.requireNonNull(request.getOrigenVenta(), "El origenVenta es obligatorio")
-            .trim()
-            .toUpperCase();
-
+        // Sobrescribir origen si es vendedor local
         if (esVendedor) {
             origenVenta = ORIGEN_LOCAL;
         }
@@ -104,6 +105,7 @@ public class VentaService {
         Venta venta = new Venta();
         venta.setFecha(LocalDateTime.now());
         venta.setOrigenVenta(origenVenta);
+        // ...existing code...
         venta.setIdEstadoVenta(estadoVenta.getIdEstadoVenta());
         venta.setIdSucursal(Objects.requireNonNull(request.getIdSucursal(), "El idSucursal es obligatorio"));
         venta.setIdCliente(idCliente);
@@ -121,7 +123,7 @@ public class VentaService {
             Integer cantidad = Objects.requireNonNull(item.getCantidad(), "La cantidad es obligatoria");
 
             Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + idProducto));
+                    .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + idProducto));
 
             if (producto.getActivo() == null || !producto.getActivo()) {
                 throw new IllegalArgumentException("El producto no está disponible: " + idProducto);
@@ -163,9 +165,9 @@ public class VentaService {
     @Transactional(readOnly = true)
     public List<VentaResponseDTO> listarTodas() {
         return ventaRepository.findAll().stream()
-            .sorted(Comparator.comparing(Venta::getFecha).reversed())
-            .map(this::construirRespuesta)
-            .toList();
+                .sorted(Comparator.comparing(Venta::getFecha).reversed())
+                .map(this::construirRespuesta)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -174,15 +176,15 @@ public class VentaService {
         UUID idCliente = resolverClientePorUsuario(authentication.getName()).getIdCliente();
 
         return ventaRepository.findByIdClienteOrderByFechaDesc(idCliente)
-            .stream()
-            .map(this::construirRespuesta)
-            .toList();
+                .stream()
+                .map(this::construirRespuesta)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public VentaResponseDTO obtenerPorId(UUID idVenta) {
         Venta venta = ventaRepository.findById(Objects.requireNonNull(idVenta, "El idVenta es obligatorio"))
-            .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada: " + idVenta));
+                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada: " + idVenta));
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (!esAdmin(authentication)) {
@@ -195,7 +197,8 @@ public class VentaService {
         return construirRespuesta(venta);
     }
 
-    private UUID resolverIdCliente(UUID idClienteRequest, Authentication authentication, boolean esAdmin, boolean esVendedor) {
+    private UUID resolverIdCliente(UUID idClienteRequest, Authentication authentication, boolean esAdmin,
+            boolean esVendedor) {
         if (esAdmin) {
             return idClienteRequest;
         }
@@ -224,24 +227,25 @@ public class VentaService {
         }
 
         return empleadoRepository.findFirstByOrderByIdEmpleadoAsc()
-            .map(Empleado::getIdEmpleado)
-            .orElseThrow(() -> new IllegalArgumentException("No existe un empleado para registrar movimientos de ventas no WEB"));
+                .map(Empleado::getIdEmpleado)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe un empleado para registrar movimientos de ventas no WEB"));
     }
 
     private EstadoVentaCatalog obtenerEstadoConfirmada() {
         return estadoVentaCatalogRepository.findByNombreEstadoIgnoreCase(ESTADO_CONFIRMADA)
-            .orElseThrow(() -> new IllegalArgumentException("No existe el estado de venta CONFIRMADA"));
+                .orElseThrow(() -> new IllegalArgumentException("No existe el estado de venta CONFIRMADA"));
     }
 
     private void validarYDescontarStock(Integer idSucursal, UUID idProducto, Integer cantidad, UUID idEmpleado) {
         InventarioId inventarioId = new InventarioId(idSucursal, idProducto);
         Inventario inventario = inventarioRepository.findById(inventarioId)
-            .orElseGet(() -> {
-                Inventario nuevoInventario = new Inventario();
-                nuevoInventario.setId(inventarioId);
-                nuevoInventario.setStock(0);
-                return nuevoInventario;
-            });
+                .orElseGet(() -> {
+                    Inventario nuevoInventario = new Inventario();
+                    nuevoInventario.setId(inventarioId);
+                    nuevoInventario.setStock(0);
+                    return nuevoInventario;
+                });
 
         int stockActual = Optional.ofNullable(inventario.getStock()).orElse(0);
         if (stockActual < cantidad) {
@@ -270,7 +274,8 @@ public class VentaService {
 
         for (VentaPagoRequestDTO pagoRequest : pagos) {
             Integer idFormaPago = Objects.requireNonNull(pagoRequest.getIdFormaPago(), "El idFormaPago es obligatorio");
-            BigDecimal montoAbonado = Objects.requireNonNull(pagoRequest.getMontoAbonado(), "El monto abonado es obligatorio");
+            BigDecimal montoAbonado = Objects.requireNonNull(pagoRequest.getMontoAbonado(),
+                    "El monto abonado es obligatorio");
 
             if (!formaPagoCatalogRepository.existsById(idFormaPago)) {
                 throw new IllegalArgumentException("Forma de pago no encontrada: " + idFormaPago);
@@ -316,94 +321,94 @@ public class VentaService {
     private VentaResponseDTO construirRespuesta(Venta venta) {
         List<DetalleVenta> detalles = detalleVentaRepository.findByIdVenta(venta.getIdVenta());
         BigDecimal totalPagado = ventaPagoRepository.findByIdVenta(venta.getIdVenta())
-            .stream()
-            .map(VentaPago::getMontoAbonado)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .stream()
+                .map(VentaPago::getMontoAbonado)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return construirRespuesta(venta, detalles, totalPagado, null);
     }
 
     private VentaResponseDTO construirRespuesta(
-        Venta venta,
-        List<DetalleVenta> detalles,
-        BigDecimal totalPagado,
-        EnvioResponseDTO envio
-    ) {
+            Venta venta,
+            List<DetalleVenta> detalles,
+            BigDecimal totalPagado,
+            EnvioResponseDTO envio) {
         List<VentaDetalleResponseDTO> detalleResponse = detalles.stream()
-            .map(detalle -> {
-                UUID detalleProductoId = Objects.requireNonNull(detalle.getIdProducto(), "El idProducto del detalle no puede ser nulo");
-                String nombreProducto = productoRepository.findById(detalleProductoId)
-                    .map(Producto::getNombreProducto)
-                    .orElse("Producto no disponible");
+                .map(detalle -> {
+                    UUID detalleProductoId = Objects.requireNonNull(detalle.getIdProducto(),
+                            "El idProducto del detalle no puede ser nulo");
+                    String nombreProducto = productoRepository.findById(detalleProductoId)
+                            .map(Producto::getNombreProducto)
+                            .orElse("Producto no disponible");
 
-                return VentaDetalleResponseDTO.builder()
-                    .idProducto(detalleProductoId)
-                    .nombreProducto(nombreProducto)
-                    .cantidad(detalle.getCantidad())
-                    .precioUnitario(detalle.getPrecioUnitario())
-                    .subtotalRenglon(detalle.getSubtotalRenglon())
-                    .build();
-            })
-            .toList();
+                    return VentaDetalleResponseDTO.builder()
+                            .idProducto(detalleProductoId)
+                            .nombreProducto(nombreProducto)
+                            .cantidad(detalle.getCantidad())
+                            .precioUnitario(detalle.getPrecioUnitario())
+                            .subtotalRenglon(detalle.getSubtotalRenglon())
+                            .build();
+                })
+                .toList();
 
         Integer estadoVentaId = Objects.requireNonNull(venta.getIdEstadoVenta(), "El idEstadoVenta no puede ser nulo");
         EstadoVentaCatalog estado = estadoVentaCatalogRepository.findById(estadoVentaId)
-            .orElse(null);
+                .orElse(null);
 
         return VentaResponseDTO.builder()
-            .idVenta(venta.getIdVenta())
-            .fecha(venta.getFecha())
-            .estadoVenta(estado == null ? null : estado.getNombreEstado())
-            .origenVenta(venta.getOrigenVenta())
-            .idSucursal(venta.getIdSucursal())
-            .idCliente(venta.getIdCliente())
-            .idEmpleado(venta.getIdEmpleado())
-            .subtotalSinDescuentos(venta.getSubtotalSinDescuentos())
-            .totalFinal(venta.getTotalFinal())
-            .totalPagado(totalPagado)
-            .idEnvio(envio == null ? null : envio.getIdEnvio())
-            .tipoEnvio(envio == null ? null : envio.getTipoEnvio())
-            .detalles(detalleResponse)
-            .build();
+                .idVenta(venta.getIdVenta())
+                .fecha(venta.getFecha())
+                .estadoVenta(estado == null ? null : estado.getNombreEstado())
+                .origenVenta(venta.getOrigenVenta())
+                .idSucursal(venta.getIdSucursal())
+                .idCliente(venta.getIdCliente())
+                .idEmpleado(venta.getIdEmpleado())
+                .subtotalSinDescuentos(venta.getSubtotalSinDescuentos())
+                .totalFinal(venta.getTotalFinal())
+                .totalPagado(totalPagado)
+                .idEnvio(envio == null ? null : envio.getIdEnvio())
+                .tipoEnvio(envio == null ? null : envio.getTipoEnvio())
+                .detalles(detalleResponse)
+                .build();
     }
 
     private Cliente resolverClientePorUsuario(String email) {
         Usuario usuario = usuarioRepository.findByEmail(email)
-            .orElseThrow(() -> new EntityNotFoundException("Usuario autenticado no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Usuario autenticado no encontrado"));
 
         return clienteRepository.findByIdPersona(usuario.getPersona().getIdPersona())
-            .orElseThrow(() -> new AccessDeniedException("El usuario autenticado no tiene perfil de cliente"));
+                .orElseThrow(() -> new AccessDeniedException("El usuario autenticado no tiene perfil de cliente"));
     }
 
     private boolean esAdmin(Authentication authentication) {
         return authentication.getAuthorities().stream()
-            .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
+                .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
     }
 
     private boolean esVendedor(Authentication authentication) {
         return authentication.getAuthorities().stream()
-            .anyMatch(authority -> ROLE_VENDEDOR.equals(authority.getAuthority()));
+                .anyMatch(authority -> ROLE_VENDEDOR.equals(authority.getAuthority()));
     }
 
     private Cliente obtenerOcrearConsumidorFinal() {
         Persona personaConsumidorFinal = personaRepository.findByDni(DNI_CONSUMIDOR_FINAL)
-            .orElseGet(() -> {
-                Persona persona = new Persona();
-                persona.setIdPersona(UUID.randomUUID());
-                persona.setNombre(NOMBRE_CONSUMIDOR_FINAL);
-                persona.setApellido(APELLIDO_CONSUMIDOR_FINAL);
-                persona.setDni(DNI_CONSUMIDOR_FINAL);
-                persona.setTelefono(null);
-                return personaRepository.save(persona);
-            });
+                .orElseGet(() -> {
+                    Persona persona = new Persona();
+                    persona.setIdPersona(UUID.randomUUID());
+                    persona.setNombre(NOMBRE_CONSUMIDOR_FINAL);
+                    persona.setApellido(APELLIDO_CONSUMIDOR_FINAL);
+                    persona.setDni(DNI_CONSUMIDOR_FINAL);
+                    persona.setTelefono(null);
+                    return personaRepository.save(persona);
+                });
 
         return clienteRepository.findByIdPersona(personaConsumidorFinal.getIdPersona())
-            .orElseGet(() -> {
-                Cliente cliente = new Cliente();
-                cliente.setIdCliente(UUID.randomUUID());
-                cliente.setIdPersona(personaConsumidorFinal.getIdPersona());
-                cliente.setPuntosFidelidad(0);
-                return clienteRepository.save(cliente);
-            });
+                .orElseGet(() -> {
+                    Cliente cliente = new Cliente();
+                    cliente.setIdCliente(UUID.randomUUID());
+                    cliente.setIdPersona(personaConsumidorFinal.getIdPersona());
+                    cliente.setPuntosFidelidad(0);
+                    return clienteRepository.save(cliente);
+                });
     }
 }
