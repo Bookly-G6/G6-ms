@@ -53,6 +53,8 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler()))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/error").permitAll()
+
                         .requestMatchers(HttpMethod.OPTIONS, "/api/v1/**").permitAll()
                         .requestMatchers("/api/v1/auth/me").authenticated()
                         // Auth público

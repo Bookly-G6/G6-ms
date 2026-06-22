@@ -16,8 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gotechy.bookly.core.enums.TipoEnvio;
-import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.model.Persona;
+import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
 import com.gotechy.bookly.modules.catalogo.model.Producto;
@@ -85,9 +85,12 @@ public class VentaService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean esAdmin = esAdmin(authentication);
         boolean esVendedor = esVendedor(authentication);
+        String origenVenta = request.getOrigenVenta().trim().toUpperCase();
+
 
         UUID idCliente = resolverIdCliente(request.getIdCliente(), authentication, esAdmin, esVendedor);
-        UUID idEmpleado = resolverIdEmpleado(request.getIdEmpleado());
+        UUID idEmpleado = resolverIdEmpleado(request.getIdEmpleado(), origenVenta);
+
         EstadoVentaCatalog estadoVenta = obtenerEstadoConfirmada();
 
         String origenVenta = Objects.requireNonNull(request.getOrigenVenta(), "El origenVenta es obligatorio")
@@ -211,14 +214,18 @@ public class VentaService {
         return resolverClientePorUsuario(authentication.getName()).getIdCliente();
     }
 
-    private UUID resolverIdEmpleado(UUID idEmpleadoRequest) {
+    private UUID resolverIdEmpleado(UUID idEmpleadoRequest, String origenVenta) {
         if (idEmpleadoRequest != null && empleadoRepository.existsById(idEmpleadoRequest)) {
             return idEmpleadoRequest;
         }
 
+        if (ORIGEN_WEB.equalsIgnoreCase(origenVenta)) {
+            return null;
+        }
+
         return empleadoRepository.findFirstByOrderByIdEmpleadoAsc()
             .map(Empleado::getIdEmpleado)
-            .orElseThrow(() -> new IllegalArgumentException("No existe un empleado para registrar movimientos de stock"));
+            .orElseThrow(() -> new IllegalArgumentException("No existe un empleado para registrar movimientos de ventas no WEB"));
     }
 
     private EstadoVentaCatalog obtenerEstadoConfirmada() {
@@ -243,6 +250,10 @@ public class VentaService {
 
         inventario.setStock(stockActual - cantidad);
         inventarioRepository.save(inventario);
+
+        if (idEmpleado == null) {
+            return;
+        }
 
         MovimientoStock movimientoStock = new MovimientoStock();
         movimientoStock.setIdSucursal(idSucursal);

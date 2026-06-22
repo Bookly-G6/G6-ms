@@ -50,7 +50,8 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.NOT_FOUND.value(),
             "Not Found",
-            "NOT_FOUND",
+            "RESOURCE_NOT_FOUND",
+            
             ex.getMessage(),
             request.getDescription(false).replace("uri=", ""),
             List.of()
@@ -69,6 +70,7 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
             "INVALID_JSON",
+            
             "El cuerpo de la solicitud no es un JSON válido.",
             request.getDescription(false).replace("uri=", ""),
             List.of(ex.getMessage())
@@ -120,10 +122,11 @@ public class GlobalExceptionHandler {
             HttpStatus.FORBIDDEN.value(),
             "Forbidden",
             "ACCESS_DENIED",
-            "No tienes permisos para acceder a este recurso.",
+            ex.getMessage() == null || ex.getMessage().isBlank()
+            ? "No tienes permisos para acceder a este recurso."
+            : ex.getMessage(),
             request.getDescription(false).replace("uri=", ""),
-            List.of()
-        );
+            java.util.List.of("Se requiere rol ADMIN o perfil de cliente según el recurso."));
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
@@ -139,25 +142,21 @@ public class GlobalExceptionHandler {
             "INTERNAL_ERROR",
             "Ocurrió un error inesperado.",
             request.getDescription(false).replace("uri=", ""),
-            List.of()
-        );
+            null);
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    @ExceptionHandler(IllegalArgumentException.class)
+   @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgumentException(
-        IllegalArgumentException ex,
-        WebRequest request
-    ) {
+            IllegalArgumentException ex,
+            WebRequest request) {
         ApiError error = new ApiError(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
-            "Bad Request",
-            "BAD_REQUEST",
-            ex.getMessage(), // Acá viaja tu mensaje de error personalizado
-            request.getDescription(false).replace("uri=", ""),
-            List.of()
-        );
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                "BUSINESS_RULE_ERROR",
+                ex.getMessage(), // Acá viaja tu mensaje de error personalizado
+                request.getDescription(false).replace("uri=", ""),
+                null);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 }
