@@ -1,5 +1,8 @@
+package com.gotechy.bookly.modules.catalogo.controller;
+
 import com.gotechy.bookly.modules.catalogo.model.EditorialSello;
 import com.gotechy.bookly.modules.catalogo.service.EditorialSelloService;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -7,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/editorial-sello")
+@RequestMapping("/api/v1/editoriales")
 @RequiredArgsConstructor
 public class EditorialSelloController {
 
@@ -15,27 +18,37 @@ public class EditorialSelloController {
 
     @GetMapping
     public ResponseEntity<List<EditorialSello>> getAllEditorialSello() {
-        List<EditorialSello> editorialSelloList =
-            editorialSelloService.listarEditorialesSelloActivas();
-        return ResponseEntity.ok(editorialSelloList);
+        return ResponseEntity.ok(
+            editorialSelloService.listarEditorialesSelloActivas()
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EditorialSello> getEditorialPorId(
+        @PathVariable Integer id
+    ) {
+        return ResponseEntity.ok(editorialSelloService.obtenerPorId(id));
     }
 
     @PostMapping
     public ResponseEntity<EditorialSello> createEditorialSello(
-        @RequestBody EditorialSello editorialSello
+        @Valid @RequestBody EditorialSello editorialSello
     ) {
-        EditorialSello createdEditorialSello =
-            editorialSelloService.crearEditorialSello(editorialSello);
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-            createdEditorialSello
+        EditorialSello created = editorialSelloService.crearEditorialSello(
+            editorialSello
         );
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarEditorialSello(
+    public ResponseEntity<java.util.Map<String, String>> eliminarEditorialSello(
         @PathVariable Integer id
     ) {
         editorialSelloService.eliminarEditorialSello(id);
-        return ResponseEntity.noContent().build();
+
+        java.util.Map<String, String> respuesta = new java.util.HashMap<>();
+        respuesta.put("mensaje", "Editorial eliminada correctamente");
+
+        return ResponseEntity.ok(respuesta);
     }
 }
