@@ -11,6 +11,8 @@ import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.RolRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
+import com.gotechy.bookly.modules.ventas.model.Cliente;
+import com.gotechy.bookly.modules.ventas.repository.ClienteRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +31,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final ClienteRepository clienteRepository;
 
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
@@ -37,11 +40,11 @@ public class AuthService {
         }
 
         Rol rolCliente = rolRepository.findByNombreRol("CLIENTE")
-            .orElseGet(() -> {
-                Rol nuevoRol = new Rol();
-                nuevoRol.setNombreRol("CLIENTE");
-                return rolRepository.save(nuevoRol);
-            });
+                .orElseGet(() -> {
+                    Rol nuevoRol = new Rol();
+                    nuevoRol.setNombreRol("CLIENTE");
+                    return rolRepository.save(nuevoRol);
+                });
 
         Persona persona = new Persona();
         persona.setIdPersona(UUID.randomUUID());
@@ -59,55 +62,73 @@ public class AuthService {
         usuario.setRol(rolCliente);
         usuario.setActivo(true);
         usuarioRepository.saveAndFlush(usuario);
+        ensureClienteProfile(usuario);
 
         String token = jwtService.generateToken(usuario);
         String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombreRol().trim().toUpperCase() : "CLIENTE";
         return new AuthResponseDTO(
-            token,
-            usuario.getIdUsuario(),
-            usuario.getEmail(),
-            persona.getNombre(),
-            persona.getApellido(),
-            rolNombre
-        );
+                token,
+                usuario.getIdUsuario(),
+                usuario.getEmail(),
+                persona.getNombre(),
+                persona.getApellido(),
+                rolNombre);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponseDTO login(LoginRequestDTO request) {
         authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
         Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
         if (!usuario.getActivo()) {
             throw new IllegalArgumentException("El usuario está inactivo");
         }
 
+        ensureClienteProfile(usuario);
+
         String token = jwtService.generateToken(usuario);
         String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombreRol().trim().toUpperCase() : "CLIENTE";
         return new AuthResponseDTO(
-            token,
-            usuario.getIdUsuario(),
-            usuario.getEmail(),
-            usuario.getPersona().getNombre(),
-            usuario.getPersona().getApellido(),
-            rolNombre
-        );
+                token,
+                usuario.getIdUsuario(),
+                usuario.getEmail(),
+                usuario.getPersona().getNombre(),
+                usuario.getPersona().getApellido(),
+                rolNombre);
     }
 
     @Transactional(readOnly = true)
     public MeResponseDTO getCurrentUser(String email) {
         Usuario usuario = usuarioRepository.findByEmail(email)
-            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Usuario no encontrado"));
         String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombreRol().trim().toUpperCase() : "CLIENTE";
         return new MeResponseDTO(
-            usuario.getIdUsuario(),
-            usuario.getEmail(),
-            usuario.getPersona().getNombre(),
-            usuario.getPersona().getApellido(),
-            rolNombre
-        );
+                usuario.getIdUsuario(),
+                usuario.getEmail(),
+                usuario.getPersona().getNombre(),
+                usuario.getPersona().getApellido(),
+                rolNombre);
+    }
+
+    private void ensureClienteProfile(Usuario usuario) {
+        String rolNombre = usuario.getRol() != null && usuario.getRol().getNombreRol() != null
+                ? usuario.getRol().getNombreRol().trim().toUpperCase()
+                : "";
+
+        if (!"CLIENTE".equals(rolNombre)) {
+            return;
+        }
+
+        UUID idPersona = usuario.getPersona().getIdPersona();
+        clienteRepository.findByIdPersona(idPersona).orElseGet(() -> {
+            Cliente cliente = new Cliente();
+            cliente.setIdCliente(UUID.randomUUID());
+            cliente.setIdPersona(idPersona);
+            cliente.setPuntosFidelidad(0);
+            return clienteRepository.save(cliente);
+        });
     }
 }
