@@ -169,58 +169,58 @@ public class VentaService {
         return construirRespuesta(ventaGuardada, detalles, totalPagado, envio);
     }
 
-        @Transactional(readOnly = true)
-        public List<TipoVentaCatalogResponseDTO> listarTiposVenta() {
+    @Transactional(readOnly = true)
+    public List<TipoVentaCatalogResponseDTO> listarTiposVenta() {
         return List.of(
-            TipoVentaCatalogResponseDTO.builder()
-                .codigo(ORIGEN_WEB)
-                .nombre("Venta web")
-                .descripcion("Compra online realizada por cliente autenticado")
-                .requiereEmpleado(false)
-                .generaEnvioAutomatico(true)
-                .build(),
-            TipoVentaCatalogResponseDTO.builder()
-                .codigo(ORIGEN_LOCAL)
-                .nombre("Venta local")
-                .descripcion("Venta presencial atendida por personal de sucursal")
-                .requiereEmpleado(true)
-                .generaEnvioAutomatico(false)
-                .build());
-        }
+                TipoVentaCatalogResponseDTO.builder()
+                        .codigo(ORIGEN_WEB)
+                        .nombre("Venta web")
+                        .descripcion("Compra online realizada por cliente autenticado")
+                        .requiereEmpleado(false)
+                        .generaEnvioAutomatico(true)
+                        .build(),
+                TipoVentaCatalogResponseDTO.builder()
+                        .codigo(ORIGEN_LOCAL)
+                        .nombre("Venta local")
+                        .descripcion("Venta presencial atendida por personal de sucursal")
+                        .requiereEmpleado(true)
+                        .generaEnvioAutomatico(false)
+                        .build());
+    }
 
-        @Transactional(readOnly = true)
-        public List<FormaPagoCatalogResponseDTO> listarFormasPago() {
+    @Transactional(readOnly = true)
+    public List<FormaPagoCatalogResponseDTO> listarFormasPago() {
         return formaPagoCatalogRepository.findAll().stream()
-            .sorted(Comparator.comparing(FormaPagoCatalog::getNombrePago,
-                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-            .map(formaPago -> FormaPagoCatalogResponseDTO.builder()
+                .sorted(Comparator.comparing(FormaPagoCatalog::getNombrePago,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .map(formaPago -> FormaPagoCatalogResponseDTO.builder()
                 .idFormaPago(formaPago.getIdFormaPago())
                 .nombrePago(formaPago.getNombrePago())
                 .build())
-            .toList();
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmpleadoCatalogResponseDTO> listarEmpleados() {
+        List<Empleado> empleados = empleadoRepository.findAll().stream()
+                .sorted(Comparator.comparing(Empleado::getIdEmpleado))
+                .toList();
+
+        List<UUID> idsPersona = new ArrayList<>();
+        for (Empleado empleado : empleados) {
+            if (empleado.getIdPersona() != null) {
+                idsPersona.add(empleado.getIdPersona());
+            }
         }
 
-        @Transactional(readOnly = true)
-        public List<EmpleadoCatalogResponseDTO> listarEmpleados() {
-        List<Empleado> empleados = empleadoRepository.findAll().stream()
-            .sorted(Comparator.comparing(Empleado::getIdEmpleado))
-            .toList();
-
-            List<UUID> idsPersona = new ArrayList<>();
-            for (Empleado empleado : empleados) {
-                if (empleado.getIdPersona() != null) {
-                    idsPersona.add(empleado.getIdPersona());
-                }
-            }
-
-            Map<UUID, Persona> personasPorId = personaRepository.findAllById(idsPersona)
-            .stream()
-            .collect(Collectors.toMap(Persona::getIdPersona, persona -> persona));
+        Map<UUID, Persona> personasPorId = personaRepository.findAllById(idsPersona)
+                .stream()
+                .collect(Collectors.toMap(Persona::getIdPersona, persona -> persona));
 
         return empleados.stream()
-            .map(empleado -> mapearEmpleadoCatalogo(empleado, personasPorId.get(empleado.getIdPersona())))
-            .toList();
-        }
+                .map(empleado -> mapearEmpleadoCatalogo(empleado, personasPorId.get(empleado.getIdPersona())))
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<VentaResponseDTO> listarTodas() {
@@ -289,7 +289,7 @@ public class VentaService {
         return empleadoRepository.findFirstByOrderByIdEmpleadoAsc()
                 .map(Empleado::getIdEmpleado)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "No existe un empleado para registrar movimientos de ventas no WEB"));
+                "No existe un empleado para registrar movimientos de ventas no WEB"));
     }
 
     private EstadoVentaCatalog obtenerEstadoConfirmada() {
@@ -466,7 +466,7 @@ public class VentaService {
                 .orElseGet(() -> {
                     Cliente cliente = new Cliente();
                     cliente.setIdCliente(UUID.randomUUID());
-                    cliente.setIdPersona(personaConsumidorFinal.getIdPersona());
+                    cliente.setPersona(personaConsumidorFinal);
                     cliente.setPuntosFidelidad(0);
                     return clienteRepository.save(cliente);
                 });

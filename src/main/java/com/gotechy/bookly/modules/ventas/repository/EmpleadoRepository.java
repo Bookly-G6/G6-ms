@@ -9,4 +9,5 @@ import com.gotechy.bookly.modules.ventas.model.Empleado;
 
 public interface EmpleadoRepository extends JpaRepository<Empleado, UUID> {
     Optional<Empleado> findFirstByOrderByIdEmpleadoAsc();
+    Optional<Empleado> findByLegajo(String legajo);
 }
