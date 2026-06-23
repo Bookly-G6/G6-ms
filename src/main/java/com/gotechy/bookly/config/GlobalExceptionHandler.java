@@ -136,6 +136,7 @@ public class GlobalExceptionHandler {
         Exception ex,
         WebRequest request
     ) {
+        ex.printStackTrace();
         ApiError error = new ApiError(
             LocalDateTime.now(),
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
