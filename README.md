@@ -394,7 +394,6 @@ Esta sección consolida todo el contrato API: endpoint, método, autenticación,
   - el rol a eliminar no debe tener usuarios asociados
 
 ---
-
 ## Módulo Catálogo de Productos
 
 ### `GET /productos`

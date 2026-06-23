@@ -10,7 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
+import com.gotechy.bookly.modules.catalogo.service.ProductoService;
 import com.gotechy.bookly.modules.ventas.dto.InventarioResponseDTO;
+import com.gotechy.bookly.modules.ventas.dto.SucursalResponseDTO;
+import com.gotechy.bookly.modules.ventas.model.Sucursal;
+import com.gotechy.bookly.modules.ventas.repository.SucursalRepository;
 import com.gotechy.bookly.modules.ventas.dto.MovimientoStockRequestDTO;
 import com.gotechy.bookly.modules.ventas.dto.MovimientoStockResponseDTO;
 import com.gotechy.bookly.modules.ventas.model.Inventario;
@@ -37,6 +41,8 @@ public class InventarioService {
     private final MovimientoStockRepository movimientoStockRepository;
     private final EmpleadoRepository empleadoRepository;
     private final ProductoRepository productoRepository;
+    private final SucursalRepository sucursalRepository;
+    private final ProductoService productoService;
 
     @Transactional(readOnly = true)
     public List<InventarioResponseDTO> listarInventario() {
@@ -215,6 +221,22 @@ public class InventarioService {
         dto.setIdSucursal(inventario.getId().getIdSucursal());
         dto.setIdProducto(inventario.getId().getIdProducto());
         dto.setStock(inventario.getStock());
+
+        // Fetch and map Product details
+        productoRepository.findById(inventario.getId().getIdProducto())
+            .ifPresent(producto -> dto.setProducto(productoService.mapearAResponseDTO(producto)));
+
+        // Fetch and map Sucursal details
+        sucursalRepository.findById(inventario.getId().getIdSucursal())
+            .ifPresent(sucursal -> {
+                SucursalResponseDTO sucursalDTO = new SucursalResponseDTO();
+                sucursalDTO.setIdSucursal(sucursal.getIdSucursal());
+                sucursalDTO.setNombre(sucursal.getNombre());
+                sucursalDTO.setDireccion(sucursal.getDireccion());
+                sucursalDTO.setActiva(sucursal.getActiva());
+                dto.setSucursal(sucursalDTO);
+            });
+
         return dto;
     }
 
