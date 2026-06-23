@@ -2,12 +2,15 @@ package com.gotechy.bookly.modules.ventas.services;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -25,6 +28,9 @@ import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
 import com.gotechy.bookly.modules.logistica.dto.EnvioRequestDTO;
 import com.gotechy.bookly.modules.logistica.dto.EnvioResponseDTO;
 import com.gotechy.bookly.modules.logistica.services.EnvioService;
+import com.gotechy.bookly.modules.ventas.dto.EmpleadoCatalogResponseDTO;
+import com.gotechy.bookly.modules.ventas.dto.FormaPagoCatalogResponseDTO;
+import com.gotechy.bookly.modules.ventas.dto.TipoVentaCatalogResponseDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaCheckoutRequestDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaDetalleResponseDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaItemRequestDTO;
@@ -34,6 +40,7 @@ import com.gotechy.bookly.modules.ventas.model.Cliente;
 import com.gotechy.bookly.modules.ventas.model.DetalleVenta;
 import com.gotechy.bookly.modules.ventas.model.Empleado;
 import com.gotechy.bookly.modules.ventas.model.EstadoVentaCatalog;
+import com.gotechy.bookly.modules.ventas.model.FormaPagoCatalog;
 import com.gotechy.bookly.modules.ventas.model.Inventario;
 import com.gotechy.bookly.modules.ventas.model.InventarioId;
 import com.gotechy.bookly.modules.ventas.model.MovimientoStock;
@@ -65,6 +72,7 @@ public class VentaService {
     private static final String DNI_CONSUMIDOR_FINAL = "";
     private static final String NOMBRE_CONSUMIDOR_FINAL = "Consumidor";
     private static final String APELLIDO_CONSUMIDOR_FINAL = "Final";
+    private static final int ID_SUCURSAL_DEFAULT = 1;
 
     private final VentaRepository ventaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
@@ -103,11 +111,10 @@ public class VentaService {
         }
 
         Venta venta = new Venta();
-        venta.setFecha(LocalDateTime.now());
+        venta.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         venta.setOrigenVenta(origenVenta);
-        // ...existing code...
         venta.setIdEstadoVenta(estadoVenta.getIdEstadoVenta());
-        venta.setIdSucursal(Objects.requireNonNull(request.getIdSucursal(), "El idSucursal es obligatorio"));
+        venta.setIdSucursal(ID_SUCURSAL_DEFAULT);
         venta.setIdCliente(idCliente);
         venta.setIdEmpleado(idEmpleado);
         venta.setSubtotalSinDescuentos(BigDecimal.ZERO);
@@ -161,6 +168,59 @@ public class VentaService {
 
         return construirRespuesta(ventaGuardada, detalles, totalPagado, envio);
     }
+
+        @Transactional(readOnly = true)
+        public List<TipoVentaCatalogResponseDTO> listarTiposVenta() {
+        return List.of(
+            TipoVentaCatalogResponseDTO.builder()
+                .codigo(ORIGEN_WEB)
+                .nombre("Venta web")
+                .descripcion("Compra online realizada por cliente autenticado")
+                .requiereEmpleado(false)
+                .generaEnvioAutomatico(true)
+                .build(),
+            TipoVentaCatalogResponseDTO.builder()
+                .codigo(ORIGEN_LOCAL)
+                .nombre("Venta local")
+                .descripcion("Venta presencial atendida por personal de sucursal")
+                .requiereEmpleado(true)
+                .generaEnvioAutomatico(false)
+                .build());
+        }
+
+        @Transactional(readOnly = true)
+        public List<FormaPagoCatalogResponseDTO> listarFormasPago() {
+        return formaPagoCatalogRepository.findAll().stream()
+            .sorted(Comparator.comparing(FormaPagoCatalog::getNombrePago,
+                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+            .map(formaPago -> FormaPagoCatalogResponseDTO.builder()
+                .idFormaPago(formaPago.getIdFormaPago())
+                .nombrePago(formaPago.getNombrePago())
+                .build())
+            .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<EmpleadoCatalogResponseDTO> listarEmpleados() {
+        List<Empleado> empleados = empleadoRepository.findAll().stream()
+            .sorted(Comparator.comparing(Empleado::getIdEmpleado))
+            .toList();
+
+            List<UUID> idsPersona = new ArrayList<>();
+            for (Empleado empleado : empleados) {
+                if (empleado.getIdPersona() != null) {
+                    idsPersona.add(empleado.getIdPersona());
+                }
+            }
+
+            Map<UUID, Persona> personasPorId = personaRepository.findAllById(idsPersona)
+            .stream()
+            .collect(Collectors.toMap(Persona::getIdPersona, persona -> persona));
+
+        return empleados.stream()
+            .map(empleado -> mapearEmpleadoCatalogo(empleado, personasPorId.get(empleado.getIdPersona())))
+            .toList();
+        }
 
     @Transactional(readOnly = true)
     public List<VentaResponseDTO> listarTodas() {
@@ -264,7 +324,7 @@ public class VentaService {
         movimientoStock.setIdProducto(idProducto);
         movimientoStock.setCantidad(cantidad);
         movimientoStock.setTipoMovimiento(MOVIMIENTO_SALIDA);
-        movimientoStock.setFecha(LocalDateTime.now());
+        movimientoStock.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         movimientoStock.setIdEmpleado(idEmpleado);
         movimientoStockRepository.save(movimientoStock);
     }
@@ -410,5 +470,30 @@ public class VentaService {
                     cliente.setPuntosFidelidad(0);
                     return clienteRepository.save(cliente);
                 });
+    }
+
+    private EmpleadoCatalogResponseDTO mapearEmpleadoCatalogo(Empleado empleado, Persona persona) {
+        String nombre = persona != null ? persona.getNombre() : null;
+        String apellido = persona != null ? persona.getApellido() : null;
+        String nombreCompleto = construirNombreCompleto(nombre, apellido);
+
+        return EmpleadoCatalogResponseDTO.builder()
+                .idEmpleado(empleado.getIdEmpleado())
+                .idPersona(empleado.getIdPersona())
+                .idSucursal(empleado.getIdSucursal())
+                .nombreCompleto(nombreCompleto)
+                .nombre(nombre)
+                .apellido(apellido)
+                .dni(persona != null ? persona.getDni() : null)
+                .telefono(persona != null ? persona.getTelefono() : null)
+                .build();
+    }
+
+    private String construirNombreCompleto(String nombre, String apellido) {
+        String nombreSafe = nombre == null ? "" : nombre.trim();
+        String apellidoSafe = apellido == null ? "" : apellido.trim();
+
+        String combinado = (nombreSafe + " " + apellidoSafe).trim();
+        return combinado.isEmpty() ? null : combinado;
     }
 }

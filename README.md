@@ -110,3 +110,17 @@ Utilizado por los empleados para avanzar el paquete en el flujo logístico. Todo
 ```
 
 > **Nota:** Los campos `numeroTracking` y `empresaCorreo` son opcionales y solo deben enviarse si el estado requiere datos de la transportista. El `idEmpleado` es obligatorio para mantener la auditoría.
+
+---
+
+# Módulo 3: GET para Frontend (Ventas)
+
+Se agregaron endpoints GET en el módulo existente de ventas para devolver información legible (nombres y descripciones) en lugar de trabajar solo con IDs.
+
+- Tipos de venta: `GET /ventas/tipos-venta`
+- Formas de pago: `GET /ventas/formas-pago`
+- Empleados: `GET /ventas/empleados`
+
+Documentación detallada de respuestas y uso en frontend:
+
+- `docs/ventas-get-catalogos.md`

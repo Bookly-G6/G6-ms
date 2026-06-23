@@ -1,6 +1,7 @@
 package com.gotechy.bookly.modules.ventas.services;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -28,6 +29,9 @@ public class InventarioService {
 
     private static final String TIPO_ENTRADA = "ENTRADA";
     private static final String TIPO_SALIDA = "SALIDA";
+    private static final int ID_SUCURSAL_DEFAULT = 1;
+    private static final String MENSAJE_ID_MOVIMIENTO_OBLIGATORIO = "El idMovimiento es obligatorio";
+    private static final String MENSAJE_MOVIMIENTO_NO_ENCONTRADO = "Movimiento de stock no encontrado: ";
 
     private final InventarioRepository inventarioRepository;
     private final MovimientoStockRepository movimientoStockRepository;
@@ -60,8 +64,9 @@ public class InventarioService {
 
     @Transactional(readOnly = true)
     public MovimientoStockResponseDTO obtenerMovimiento(Integer idMovimiento) {
-        MovimientoStock movimiento = movimientoStockRepository.findById(Objects.requireNonNull(idMovimiento, "El idMovimiento es obligatorio"))
-            .orElseThrow(() -> new EntityNotFoundException("Movimiento de stock no encontrado: " + idMovimiento));
+        MovimientoStock movimiento = movimientoStockRepository
+            .findById(Objects.requireNonNull(idMovimiento, MENSAJE_ID_MOVIMIENTO_OBLIGATORIO))
+            .orElseThrow(() -> new EntityNotFoundException(MENSAJE_MOVIMIENTO_NO_ENCONTRADO + idMovimiento));
 
         return mapearMovimiento(movimiento);
     }
@@ -84,19 +89,20 @@ public class InventarioService {
 
     private MovimientoStockResponseDTO crearMovimientoInterno(MovimientoStockRequestDTO request, String tipoMovimiento) {
         Integer cantidad = Objects.requireNonNull(request.getCantidad(), "La cantidad es obligatoria");
+        Integer idSucursal = ID_SUCURSAL_DEFAULT;
 
         validarReferencias(request.getIdProducto(), request.getIdEmpleado());
 
-        Inventario inventario = obtenerOCrearInventario(request.getIdSucursal(), request.getIdProducto());
+        Inventario inventario = obtenerOCrearInventario(idSucursal, request.getIdProducto());
         int delta = calcularDelta(tipoMovimiento, cantidad);
         int stockResultante = aplicarDeltaConValidacion(inventario, delta, request.getIdProducto());
 
         MovimientoStock movimiento = new MovimientoStock();
-        movimiento.setIdSucursal(request.getIdSucursal());
+        movimiento.setIdSucursal(idSucursal);
         movimiento.setIdProducto(request.getIdProducto());
         movimiento.setCantidad(cantidad);
         movimiento.setTipoMovimiento(tipoMovimiento);
-        movimiento.setFecha(LocalDateTime.now());
+        movimiento.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         movimiento.setIdEmpleado(request.getIdEmpleado());
 
         movimiento = movimientoStockRepository.save(movimiento);
@@ -106,11 +112,13 @@ public class InventarioService {
 
     @Transactional
     public MovimientoStockResponseDTO actualizarMovimiento(Integer idMovimiento, MovimientoStockRequestDTO request) {
-        MovimientoStock movimientoExistente = movimientoStockRepository.findById(Objects.requireNonNull(idMovimiento, "El idMovimiento es obligatorio"))
-            .orElseThrow(() -> new EntityNotFoundException("Movimiento de stock no encontrado: " + idMovimiento));
+        MovimientoStock movimientoExistente = movimientoStockRepository
+            .findById(Objects.requireNonNull(idMovimiento, MENSAJE_ID_MOVIMIENTO_OBLIGATORIO))
+            .orElseThrow(() -> new EntityNotFoundException(MENSAJE_MOVIMIENTO_NO_ENCONTRADO + idMovimiento));
 
         String tipoNuevo = normalizarYValidarTipoMovimiento(request.getTipoMovimiento());
         Integer cantidadNueva = Objects.requireNonNull(request.getCantidad(), "La cantidad es obligatoria");
+        Integer idSucursalNueva = ID_SUCURSAL_DEFAULT;
 
         validarReferencias(request.getIdProducto(), request.getIdEmpleado());
 
@@ -118,16 +126,16 @@ public class InventarioService {
         int deltaOriginal = calcularDelta(movimientoExistente.getTipoMovimiento(), movimientoExistente.getCantidad());
         aplicarDeltaConValidacion(inventarioOriginal, -deltaOriginal, movimientoExistente.getIdProducto());
 
-        Inventario inventarioNuevo = obtenerOCrearInventario(request.getIdSucursal(), request.getIdProducto());
+        Inventario inventarioNuevo = obtenerOCrearInventario(idSucursalNueva, request.getIdProducto());
         int deltaNuevo = calcularDelta(tipoNuevo, cantidadNueva);
         int stockResultante = aplicarDeltaConValidacion(inventarioNuevo, deltaNuevo, request.getIdProducto());
 
-        movimientoExistente.setIdSucursal(request.getIdSucursal());
+        movimientoExistente.setIdSucursal(idSucursalNueva);
         movimientoExistente.setIdProducto(request.getIdProducto());
         movimientoExistente.setCantidad(cantidadNueva);
         movimientoExistente.setTipoMovimiento(tipoNuevo);
         movimientoExistente.setIdEmpleado(request.getIdEmpleado());
-        movimientoExistente.setFecha(LocalDateTime.now());
+        movimientoExistente.setFecha(LocalDateTime.now(ZoneOffset.UTC));
 
         movimientoExistente = movimientoStockRepository.save(movimientoExistente);
 
@@ -136,8 +144,9 @@ public class InventarioService {
 
     @Transactional
     public void eliminarMovimiento(Integer idMovimiento) {
-        MovimientoStock movimiento = movimientoStockRepository.findById(Objects.requireNonNull(idMovimiento, "El idMovimiento es obligatorio"))
-            .orElseThrow(() -> new EntityNotFoundException("Movimiento de stock no encontrado: " + idMovimiento));
+        MovimientoStock movimiento = movimientoStockRepository
+            .findById(Objects.requireNonNull(idMovimiento, MENSAJE_ID_MOVIMIENTO_OBLIGATORIO))
+            .orElseThrow(() -> new EntityNotFoundException(MENSAJE_MOVIMIENTO_NO_ENCONTRADO + idMovimiento));
 
         Inventario inventario = obtenerOCrearInventario(movimiento.getIdSucursal(), movimiento.getIdProducto());
         int delta = calcularDelta(movimiento.getTipoMovimiento(), movimiento.getCantidad());
@@ -213,7 +222,7 @@ public class InventarioService {
         Inventario inventario = inventarioRepository.findById(new InventarioId(movimiento.getIdSucursal(), movimiento.getIdProducto()))
             .orElse(null);
 
-        Integer stockResultante = inventario != null ? inventario.getStock() : 0;
+        Integer stockResultante = inventario != null ? Objects.requireNonNullElse(inventario.getStock(), 0) : 0;
         return mapearMovimientoConStock(movimiento, stockResultante);
     }
 

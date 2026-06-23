@@ -8,7 +8,6 @@ import com.gotechy.bookly.core.enums.TipoEnvio;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
@@ -17,7 +16,6 @@ public class VentaCheckoutRequestDTO {
     @NotBlank(message = "El origen de venta es obligatorio")
     private String origenVenta;
 
-    @NotNull(message = "El idSucursal es obligatorio")
     private Integer idSucursal;
 
     private UUID idCliente;
