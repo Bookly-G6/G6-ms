@@ -3,11 +3,7 @@ package com.gotechy.bookly;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(
-    exclude = {
-        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-    }
-)
+@SpringBootApplication
 public class BooklyApplication {
 
     public static void main(String[] args) {

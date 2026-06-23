@@ -1,28 +1,32 @@
 package com.gotechy.bookly.modules.catalogo.service;
 
+import com.gotechy.bookly.modules.accesos.model.Usuario;
+import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
 import com.gotechy.bookly.modules.catalogo.model.AutorArtista;
 import com.gotechy.bookly.modules.catalogo.model.Categoria;
 import com.gotechy.bookly.modules.catalogo.model.EditorialSello;
+import com.gotechy.bookly.modules.catalogo.model.HistorialPrecio;
 import com.gotechy.bookly.modules.catalogo.model.Producto;
 import com.gotechy.bookly.modules.catalogo.model.RangoEtario;
 import com.gotechy.bookly.modules.catalogo.model.TipoProducto;
 import com.gotechy.bookly.modules.catalogo.repository.AutorArtistaRepository;
 import com.gotechy.bookly.modules.catalogo.repository.CategoriaRepository;
 import com.gotechy.bookly.modules.catalogo.repository.EditorialSelloRepository;
+import com.gotechy.bookly.modules.catalogo.repository.HistorialPrecioRepository;
 import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
 import com.gotechy.bookly.modules.catalogo.repository.RangoEtarioRepository;
 import com.gotechy.bookly.modules.catalogo.repository.TipoProductoRepository;
+import com.gotechy.bookly.modules.ventas.model.Empleado;
+import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,8 +40,9 @@ public class ProductoService {
     private final RangoEtarioRepository rangoEtarioRepository;
     private final CategoriaRepository categoriaRepository;
     private final AutorArtistaRepository autorArtistaRepository;
-    // Corregida la minúscula inicial para que coincida con el uso en el método
     private final HistorialPrecioRepository historialPrecioRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final EmpleadoRepository empleadoRepository;
 
     public List<ProductoResponseDTO> listarActivos() {
         return productoRepository
@@ -284,18 +289,36 @@ public class ProductoService {
 
             Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
-            // Evitamos un posible NullPointerException si la ruta se prueba sin seguridad momentáneamente
-            String username = (authentication != null)
-                ? authentication.getName()
-                : "e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2";
 
-            try {
-                historial.setIdEmpleado(UUID.fromString(username));
-            } catch (IllegalArgumentException e) {
-                historial.setIdEmpleado(
-                    UUID.fromString("e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2")
+            if (
+                authentication == null ||
+                !authentication.isAuthenticated() ||
+                "anonymousUser".equals(authentication.getPrincipal())
+            ) {
+                throw new SecurityException(
+                    "Acceso denegado: Se requiere estar autenticado para modificar precios."
                 );
             }
+
+            String emailLogueado = authentication.getName();
+
+            Usuario usuarioAuth = usuarioRepository
+                .findByEmail(emailLogueado)
+                .orElseThrow(() ->
+                    new SecurityException(
+                        "Usuario no encontrado en la BD: " + emailLogueado
+                    )
+                );
+
+            Empleado empleadoEjecutor = empleadoRepository
+                .findByIdPersona(usuarioAuth.getPersona().getIdPersona())
+                .orElseThrow(() ->
+                    new SecurityException(
+                        "Operación denegada: El usuario autenticado no posee perfil de Empleado."
+                    )
+                );
+
+            historial.setIdEmpleado(empleadoEjecutor.getIdEmpleado());
 
             historialPrecioRepository.save(historial);
         }

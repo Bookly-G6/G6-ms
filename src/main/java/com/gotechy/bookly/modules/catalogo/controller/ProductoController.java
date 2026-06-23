@@ -6,6 +6,7 @@ import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
 import com.gotechy.bookly.modules.catalogo.service.ProductoService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -70,12 +72,12 @@ public class ProductoController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable UUID id) {
+    public ResponseEntity<Map<String, String>> eliminarProducto(
+        @PathVariable UUID id
+    ) {
         productoService.eliminar(id);
-
-        java.util.Map<String, String> respuesta = new java.util.HashMap<>();
-        respuesta.put("mensaje", "Producto eliminado correctamente");
-
-        return ResponseEntity.ok(respuesta);
+        return ResponseEntity.ok(
+            Map.of("message", "Producto eliminado correctamente")
+        );
     }
 }

@@ -158,7 +158,7 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
             "BUSINESS_RULE_ERROR",
-            ex.getMessage(), // Acá viaja tu mensaje de error personalizado
+            ex.getMessage(),
             request.getDescription(false).replace("uri=", ""),
             null
         );
@@ -174,8 +174,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
+            "INVALID_FORMAT",
             "El formato del ID proporcionado no es válido. Se esperaba un UUID.",
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            null
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
@@ -189,25 +191,10 @@ public class GlobalExceptionHandler {
             LocalDateTime.now(),
             HttpStatus.CONFLICT.value(),
             "Conflict",
+            "ILLEGAL_STATE",
             ex.getMessage(),
-            request.getDescription(false).replace("uri=", "")
-        );
-        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-    }
-
-    @ExceptionHandler(
-        org.springframework.dao.DataIntegrityViolationException.class
-    )
-    public ResponseEntity<ApiError> handleDataIntegrityViolation(
-        org.springframework.dao.DataIntegrityViolationException ex,
-        WebRequest request
-    ) {
-        ApiError error = new ApiError(
-            LocalDateTime.now(),
-            HttpStatus.CONFLICT.value(),
-            "Conflict",
-            "El valor ingresado ya existe en la base de datos.",
-            request.getDescription(false).replace("uri=", "")
+            request.getDescription(false).replace("uri=", ""),
+            null
         );
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
