@@ -1,7 +1,9 @@
 package com.gotechy.bookly.modules.catalogo.service;
 
 import com.gotechy.bookly.modules.accesos.model.Usuario;
+import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
+import com.gotechy.bookly.modules.catalogo.dto.HistorialPrecioResponseDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
 import com.gotechy.bookly.modules.catalogo.model.AutorArtista;
@@ -43,6 +45,7 @@ public class ProductoService {
     private final HistorialPrecioRepository historialPrecioRepository;
     private final UsuarioRepository usuarioRepository;
     private final EmpleadoRepository empleadoRepository;
+    private final PersonaRepository personaRepository;
 
     public List<ProductoResponseDTO> listarActivos() {
         return productoRepository
@@ -348,5 +351,61 @@ public class ProductoService {
 
         producto.setActivo(false);
         productoRepository.save(producto);
+    }
+
+    public List<HistorialPrecioResponseDTO> obtenerHistorialPrecios(
+        UUID idProducto
+    ) {
+        Producto producto = productoRepository
+            .findById(idProducto)
+            .orElseThrow(() ->
+                new EntityNotFoundException(
+                    "Producto con ID " + idProducto + " no encontrado"
+                )
+            );
+
+        List<HistorialPrecio> historial =
+            historialPrecioRepository.findByProducto_IdProductoOrderByFechaCambioDesc(
+                idProducto
+            );
+
+        return historial
+            .stream()
+            .map(h -> {
+                HistorialPrecioResponseDTO dto =
+                    new HistorialPrecioResponseDTO();
+                dto.setIdHistorial(h.getIdHistorialPrecio());
+                dto.setPrecioCostoAnterior(h.getPrecioCostoAnterior());
+                dto.setPrecioVentaAnterior(h.getPrecioVentaAnterior());
+                dto.setPrecioCostoNuevo(h.getPrecioCostoNuevo());
+                dto.setPrecioVentaNuevo(h.getPrecioVentaNuevo());
+                dto.setFechaCambio(h.getFechaCambio());
+
+                // --- Lógica para buscar el nombre real del empleado ---
+                String nombreCompleto = "Sistema / Desconocido";
+
+                if (h.getIdEmpleado() != null) {
+                    empleadoRepository
+                        .findById(h.getIdEmpleado())
+                        .ifPresent(empleado -> {
+                            personaRepository
+                                .findById(empleado.getIdPersona())
+                                .ifPresent(persona -> {
+                                    dto.setEmpleadoNombre(
+                                        persona.getNombre() +
+                                            " " +
+                                            persona.getApellido()
+                                    );
+                                });
+                        });
+                }
+
+                if (dto.getEmpleadoNombre() == null) {
+                    dto.setEmpleadoNombre(nombreCompleto);
+                }
+
+                return dto;
+            })
+            .toList();
     }
 }

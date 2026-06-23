@@ -1,6 +1,7 @@
 package com.gotechy.bookly.modules.catalogo.controller;
 
 import com.gotechy.bookly.core.utils.JsonAtributosValidator;
+import com.gotechy.bookly.modules.catalogo.dto.HistorialPrecioResponseDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
 import com.gotechy.bookly.modules.catalogo.service.ProductoService;
@@ -79,5 +80,13 @@ public class ProductoController {
         return ResponseEntity.ok(
             Map.of("message", "Producto eliminado correctamente")
         );
+    }
+
+    @GetMapping("/{id}/historial-precios")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<
+        List<HistorialPrecioResponseDTO>
+    > obtenerHistorialPrecios(@PathVariable UUID id) {
+        return ResponseEntity.ok(productoService.obtenerHistorialPrecios(id));
     }
 }
