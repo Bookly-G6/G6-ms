@@ -30,18 +30,18 @@ INSERT INTO public.usuario (
     id_rol,
     activo
 ) VALUES
-('30e32ad0-c9f5-461f-91b8-a967600b7ba1', 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', 'carlos.logistico@empresa.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 3, true),
-('9bb6c417-3ba9-46c3-8dba-7216930efe2f', 'c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3', 'lucia.compras@empresa.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 1, true),
-('b5e3850a-60c1-4c2a-916d-1961d087a01b', '6de695a9-34cf-4de3-a160-f6c150ec273e', 'juan.perez@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 2, true),
-('da735e5c-36f3-42b3-9d84-cce471ef2ce2', 'dd5343c3-fd01-4ff7-a851-0d64756da65f', 'maria.gomez@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 1, true),
-('4a492c77-f774-4fd1-b04f-cf900a517c92', '4d34de3e-be7b-4813-ad44-940ecab908ad', 'carlos.lopez@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 3, true),
-('39af0735-9855-4156-89e9-ae6d8e7f1790', 'e1615610-2fa4-43b6-9dfc-b10fe5fb80c5', 'ana.martinez@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 1, true),
-('3f0cdd74-55ec-4fc7-befb-8cdf479becfc', '74521d09-d249-4a44-9f25-7cd57663e96c', 'luis.fernandez@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 3, true),
-('ccce25cd-16a2-4ac1-b9f3-e1f1ac28e7c9', 'cc4be056-9fa3-4562-a85b-8486ea30561f', 'sofia.ramirez@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 1, true),
-('4948025b-0c2d-473b-bdd7-3c51d76a6de9', '05566392-d1ce-43f3-ba0f-db3ac615c194', 'diego.torres@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 3, true),
-('bfb3f9a6-f2d2-4c92-8d28-4977307b1d55', 'd6823641-824d-4096-a5ca-5196ccbc4213', 'lucia.sanchez@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 1, true),
-('2404a613-39b6-4704-ae63-b22c5a43d769', '384d9e4b-4efb-456c-ac71-9a15424d6619', 'martin.diaz@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 3, true),
-('19a3daf6-1563-4498-b7a1-cd860b0d7b68', '3406f143-0ab6-4821-98c9-de0c34b3aca7', 'valentina.ruiz@gmail.com', '$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M9iS7G4rM3M5N6g6s0TQ2P4d5H6W', 1, true)
+('30e32ad0-c9f5-461f-91b8-a967600b7ba1', 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', 'carlos.logistico@empresa.com', '123456', 3, true),
+('9bb6c417-3ba9-46c3-8dba-7216930efe2f', 'c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3', 'lucia.compras@empresa.com', '123456', 1, true),
+('b5e3850a-60c1-4c2a-916d-1961d087a01b', '6de695a9-34cf-4de3-a160-f6c150ec273e', 'juan.perez@gmail.com', '123456', 2, true),
+('da735e5c-36f3-42b3-9d84-cce471ef2ce2', 'dd5343c3-fd01-4ff7-a851-0d64756da65f', 'maria.gomez@gmail.com', '123456', 1, true),
+('4a492c77-f774-4fd1-b04f-cf900a517c92', '4d34de3e-be7b-4813-ad44-940ecab908ad', 'carlos.lopez@gmail.com', '123456', 3, true),
+('39af0735-9855-4156-89e9-ae6d8e7f1790', 'e1615610-2fa4-43b6-9dfc-b10fe5fb80c5', 'ana.martinez@gmail.com', '123456', 1, true),
+('3f0cdd74-55ec-4fc7-befb-8cdf479becfc', '74521d09-d249-4a44-9f25-7cd57663e96c', 'luis.fernandez@gmail.com', '123456', 3, true),
+('ccce25cd-16a2-4ac1-b9f3-e1f1ac28e7c9', 'cc4be056-9fa3-4562-a85b-8486ea30561f', 'sofia.ramirez@gmail.com', '123456', 1, true),
+('4948025b-0c2d-473b-bdd7-3c51d76a6de9', '05566392-d1ce-43f3-ba0f-db3ac615c194', 'diego.torres@gmail.com', '123456', 3, true),
+('bfb3f9a6-f2d2-4c92-8d28-4977307b1d55', 'd6823641-824d-4096-a5ca-5196ccbc4213', 'lucia.sanchez@gmail.com', '123456', 1, true),
+('2404a613-39b6-4704-ae63-b22c5a43d769', '384d9e4b-4efb-456c-ac71-9a15424d6619', 'martin.diaz@gmail.com', '123456', 3, true),
+('19a3daf6-1563-4498-b7a1-cd860b0d7b68', '3406f143-0ab6-4821-98c9-de0c34b3aca7', 'valentina.ruiz@gmail.com', '123456', 1, true)
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO public.producto (
