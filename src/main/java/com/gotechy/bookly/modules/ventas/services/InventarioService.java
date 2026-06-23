@@ -69,6 +69,20 @@ public class InventarioService {
     @Transactional
     public MovimientoStockResponseDTO crearMovimiento(MovimientoStockRequestDTO request) {
         String tipoMovimiento = normalizarYValidarTipoMovimiento(request.getTipoMovimiento());
+        return crearMovimientoInterno(request, tipoMovimiento);
+    }
+
+    @Transactional
+    public MovimientoStockResponseDTO crearEntrada(MovimientoStockRequestDTO request) {
+        return crearMovimientoInterno(request, TIPO_ENTRADA);
+    }
+
+    @Transactional
+    public MovimientoStockResponseDTO crearSalida(MovimientoStockRequestDTO request) {
+        return crearMovimientoInterno(request, TIPO_SALIDA);
+    }
+
+    private MovimientoStockResponseDTO crearMovimientoInterno(MovimientoStockRequestDTO request, String tipoMovimiento) {
         Integer cantidad = Objects.requireNonNull(request.getCantidad(), "La cantidad es obligatoria");
 
         validarReferencias(request.getIdProducto(), request.getIdEmpleado());
