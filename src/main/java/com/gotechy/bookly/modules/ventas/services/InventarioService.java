@@ -110,6 +110,7 @@ public class InventarioService {
         movimiento.setTipoMovimiento(tipoMovimiento);
         movimiento.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         movimiento.setIdEmpleado(request.getIdEmpleado());
+        movimiento.setStockResultante(stockResultante);
 
         movimiento = movimientoStockRepository.save(movimiento);
 
@@ -142,6 +143,7 @@ public class InventarioService {
         movimientoExistente.setTipoMovimiento(tipoNuevo);
         movimientoExistente.setIdEmpleado(request.getIdEmpleado());
         movimientoExistente.setFecha(LocalDateTime.now(ZoneOffset.UTC));
+        movimientoExistente.setStockResultante(stockResultante);
 
         movimientoExistente = movimientoStockRepository.save(movimientoExistente);
 
@@ -241,10 +243,12 @@ public class InventarioService {
     }
 
     private MovimientoStockResponseDTO mapearMovimiento(MovimientoStock movimiento) {
-        Inventario inventario = inventarioRepository.findById(new InventarioId(movimiento.getIdSucursal(), movimiento.getIdProducto()))
-            .orElse(null);
-
-        Integer stockResultante = inventario != null ? Objects.requireNonNullElse(inventario.getStock(), 0) : 0;
+        Integer stockResultante = movimiento.getStockResultante();
+        if (stockResultante == null) {
+            Inventario inventario = inventarioRepository.findById(new InventarioId(movimiento.getIdSucursal(), movimiento.getIdProducto()))
+                .orElse(null);
+            stockResultante = inventario != null ? Objects.requireNonNullElse(inventario.getStock(), 0) : 0;
+        }
         return mapearMovimientoConStock(movimiento, stockResultante);
     }
 
