@@ -18,7 +18,9 @@ import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.RolRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
 import com.gotechy.bookly.modules.ventas.model.Cliente;
+import com.gotechy.bookly.modules.ventas.model.Empleado;
 import com.gotechy.bookly.modules.ventas.repository.ClienteRepository;
+import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class UsuarioService {
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
     private final ClienteRepository clienteRepository;
+    private final EmpleadoRepository empleadoRepository;
 
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listarTodos() {
@@ -72,7 +75,7 @@ public class UsuarioService {
         usuario.setActivo(request.getActivo() == null || request.getActivo());
 
         Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
-        ensureClienteProfile(usuarioGuardado);
+        ensureProfiles(usuarioGuardado);
         return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
@@ -111,7 +114,7 @@ public class UsuarioService {
 
         usuario.setRol(nuevoRol);
         Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
-        ensureClienteProfile(usuarioGuardado);
+        ensureProfiles(usuarioGuardado);
         return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
@@ -139,22 +142,34 @@ public class UsuarioService {
             });
     }
 
-    private void ensureClienteProfile(Usuario usuario) {
+    private void ensureProfiles(Usuario usuario) {
         String rolNombre = usuario.getRol() != null && usuario.getRol().getNombreRol() != null
                 ? usuario.getRol().getNombreRol().trim().toUpperCase()
                 : "";
 
-        if (!"CLIENTE".equals(rolNombre)) {
+        UUID idPersona = usuario.getPersona().getIdPersona();
+
+        if ("CLIENTE".equals(rolNombre)) {
+            clienteRepository.findByIdPersona(idPersona).orElseGet(() -> {
+                Cliente cliente = new Cliente();
+                cliente.setIdCliente(UUID.randomUUID());
+                cliente.setPersona(usuario.getPersona());
+                cliente.setPuntosFidelidad(0);
+                return clienteRepository.save(cliente);
+            });
             return;
         }
 
-        UUID idPersona = usuario.getPersona().getIdPersona();
-        clienteRepository.findByIdPersona(idPersona).orElseGet(() -> {
-            Cliente cliente = new Cliente();
-            cliente.setIdCliente(UUID.randomUUID());
-            cliente.setPersona(usuario.getPersona());
-            cliente.setPuntosFidelidad(0);
-            return clienteRepository.save(cliente);
-        });
+        if ("ADMIN".equals(rolNombre) || "VENDEDOR".equals(rolNombre)) {
+            empleadoRepository.findByIdPersona(idPersona).orElseGet(() -> {
+                Empleado empleado = new Empleado();
+                empleado.setIdEmpleado(UUID.randomUUID());
+                empleado.setIdPersona(idPersona);
+                empleado.setIdSucursal(1);
+                empleado.setLegajo("EMP-" + idPersona.toString().substring(0, 8).toUpperCase());
+                empleado.setCargo(rolNombre);
+                return empleadoRepository.save(empleado);
+            });
+        }
     }
 }
