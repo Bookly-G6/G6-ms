@@ -1,6 +1,5 @@
 package com.gotechy.bookly.modules.catalogo.service;
 
-import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
 import com.gotechy.bookly.modules.catalogo.dto.HistorialPrecioResponseDTO;
@@ -26,11 +25,17 @@ import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
 import com.gotechy.bookly.modules.ventas.repository.MovimientoStockRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.List;
 import java.util.Objects;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,19 +59,34 @@ public class ProductoService {
         return productoRepository
             .findAll()
             .stream()
-            .map(p -> mapearAResponseDTO(p, true))
+            .map(p -> mapearAResponseDTO(p))
             .toList();
     }
 
     public List<ProductoResponseDTO> listarActivos() {
-        return productoRepository
-            .findByActivoTrue()
-            .stream()
-            .map(p -> mapearAResponseDTO(p, false))
-            .toList();
+        return listarSegunRol(null);
+    }
+
+    public List<ProductoResponseDTO> listarSegunRol(
+        Authentication authentication
+    ) {
+        boolean esAdmin = esAdmin(authentication);
+
+        List<Producto> productos = esAdmin
+            ? productoRepository.findAll()
+            : productoRepository.findByActivoTrue();
+
+        return productos.stream().map(this::mapearAResponseDTO).toList();
     }
 
     public ProductoResponseDTO obtenerActivoPorId(UUID idProducto) {
+        return obtenerSegunRolPorId(idProducto, null);
+    }
+
+    public ProductoResponseDTO obtenerSegunRolPorId(
+        UUID idProducto,
+        Authentication authentication
+    ) {
         UUID productoId = Objects.requireNonNull(
             idProducto,
             "El idProducto no puede ser nulo"
@@ -80,13 +100,16 @@ public class ProductoService {
                 )
             );
 
-        if (producto.getActivo() == null || !producto.getActivo()) {
+        boolean esAdmin = esAdmin(authentication);
+        boolean activo = Boolean.TRUE.equals(producto.getActivo());
+
+        if (!activo && !esAdmin) {
             throw new EntityNotFoundException(
                 "Producto con ID " + productoId + " no encontrado"
             );
         }
 
-        return mapearAResponseDTO(producto, true);
+        return mapearAResponseDTO(producto);
     }
 
     public ProductoResponseDTO obtenerPorId(UUID id) {
@@ -104,7 +127,7 @@ public class ProductoService {
             );
         }
 
-        return mapearAResponseDTO(producto, true);
+        return mapearAResponseDTO(producto);
     }
 
     public ProductoResponseDTO crearProducto(ProductoRequestDTO dto) {
@@ -176,6 +199,7 @@ public class ProductoService {
         producto.setDescripcion(dto.getDescripcion());
         producto.setPrecioCosto(dto.getPrecioCosto());
         producto.setPrecioActual(dto.getPrecioActual());
+        producto.setStock(Objects.requireNonNullElse(dto.getStock(), 0));
         producto.setTipoProducto(tipoProducto);
         producto.setEditorialSello(editorialSello);
         producto.setRangoEtario(rangoEtario);
@@ -184,14 +208,10 @@ public class ProductoService {
 
         Producto productoGuardado = productoRepository.save(producto);
 
-        return mapearAResponseDTO(productoGuardado, true, true);
+        return mapearAResponseDTO(productoGuardado);
     }
 
-    private ProductoResponseDTO mapearAResponseDTO(
-        Producto producto,
-        boolean activo,
-        boolean incluirStock
-    ) {
+    public ProductoResponseDTO mapearAResponseDTO(Producto producto) {
         ProductoResponseDTO response = new ProductoResponseDTO();
         response.setIdProducto(producto.getIdProducto());
         response.setCodigoBarras(producto.getCodigoBarras());
@@ -199,14 +219,8 @@ public class ProductoService {
         response.setDescripcion(producto.getDescripcion());
         response.setPrecioCosto(producto.getPrecioCosto());
         response.setPrecioActual(producto.getPrecioActual());
-        response.setActivo(activo);
-
-        if (incluirStock) {
-            response.setStock(producto.getStock());
-        } else {
-            response.setStock(null);
-        }
-
+        response.setStock(Objects.requireNonNullElse(producto.getStock(), 0));
+        response.setActivo(producto.getActivo());
         List<String> nombresAutores = producto
             .getAutores()
             .stream()
@@ -234,143 +248,53 @@ public class ProductoService {
         return response;
     }
 
-    @Transactional
-    public ProductoResponseDTO actualizarProducto(
-        UUID id,
-        ProductoRequestDTO dto
-    ) {
-        Producto producto = productoRepository
-            .findById(id)
+    private boolean esAdmin(Authentication authentication) {
+        if (authentication == null) {
+            return false;
+        }
+
+        return authentication
+            .getAuthorities()
+            .stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch(rol -> "ROLE_ADMIN".equals(rol));
+    }
+
+    private UUID obtenerIdEmpleadoAutenticado() {
+        org.springframework.security.core.Authentication auth =
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        if (
+            auth == null ||
+            !auth.isAuthenticated() ||
+            "anonymousUser".equals(auth.getPrincipal())
+        ) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                "No hay un usuario autenticado para realizar esta acción."
+            );
+        }
+
+        String email = auth.getName();
+
+        com.gotechy.bookly.modules.accesos.model.Usuario usuario =
+            usuarioRepository
+                .findByEmail(email)
+                .orElseThrow(() ->
+                    new EntityNotFoundException(
+                        "Usuario logueado no encontrado en la base de datos."
+                    )
+                );
+
+        return empleadoRepository
+            .findByIdPersona(usuario.getPersona().getIdPersona())
+            .map(
+                com.gotechy.bookly.modules.ventas.model.Empleado::getIdEmpleado
+            )
             .orElseThrow(() ->
-                new EntityNotFoundException(
-                    "Producto con ID " + id + " no encontrado"
+                new org.springframework.security.access.AccessDeniedException(
+                    "El usuario logueado no tiene un perfil de Empleado asignado."
                 )
             );
-
-        if (!producto.getActivo()) {
-            throw new IllegalStateException(
-                "No se puede editar un producto que se encuentra inactivo."
-            );
-        }
-
-        java.math.BigDecimal precioCostoAnterior = producto.getPrecioCosto();
-        java.math.BigDecimal precioVentaAnterior = producto.getPrecioActual();
-        Integer stockAnterior = producto.getStock();
-
-        TipoProducto tipoProducto = tipoProductoRepository
-            .findById(dto.getIdTipoProducto())
-            .orElseThrow(() ->
-                new EntityNotFoundException("Tipo de producto no encontrado")
-            );
-
-        EditorialSello editorialSello = editorialSelloRepository
-            .findById(dto.getIdEditorialSello())
-            .orElseThrow(() ->
-                new EntityNotFoundException("Editorial o Sello no encontrado")
-            );
-
-        RangoEtario rangoEtario = rangoEtarioRepository
-            .findById(dto.getIdRangoEtario())
-            .orElseThrow(() ->
-                new EntityNotFoundException("Rango etario no encontrado")
-            );
-
-        List<Categoria> categorias = categoriaRepository.findAllById(
-            dto.getIdsCategorias()
-        );
-        if (categorias.isEmpty()) throw new EntityNotFoundException(
-            "Categorías no encontradas"
-        );
-
-        List<AutorArtista> autores = autorArtistaRepository.findAllById(
-            dto.getIdsAutores()
-        );
-        if (autores.isEmpty()) throw new EntityNotFoundException(
-            "Autores no encontrados"
-        );
-
-        producto.setCodigoBarras(dto.getCodigoBarras());
-        producto.setNombreProducto(dto.getNombreProducto());
-        producto.setDescripcion(dto.getDescripcion());
-        producto.setPrecioCosto(dto.getPrecioCosto());
-        producto.setPrecioActual(dto.getPrecioActual());
-        producto.setAtributosEspecificos(dto.getAtributosEspecificos());
-        producto.setStock(dto.getStock());
-
-        producto.setTipoProducto(tipoProducto);
-        producto.setEditorialSello(editorialSello);
-        producto.setRangoEtario(rangoEtario);
-        producto.setCategorias(categorias);
-        producto.setAutores(autores);
-
-        boolean cambioPrecioCosto =
-            precioCostoAnterior.compareTo(dto.getPrecioCosto()) != 0;
-        boolean cambioPrecioVenta =
-            precioVentaAnterior.compareTo(dto.getPrecioActual()) != 0;
-        boolean cambioStock = !stockAnterior.equals(dto.getStock());
-
-        if (cambioPrecioCosto || cambioPrecioVenta || cambioStock) {
-            Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-            if (
-                authentication == null ||
-                !authentication.isAuthenticated() ||
-                "anonymousUser".equals(authentication.getPrincipal())
-            ) {
-                throw new SecurityException(
-                    "Acceso denegado: Se requiere estar autenticado para modificar productos."
-                );
-            }
-
-            String emailLogueado = authentication.getName();
-
-            Usuario usuarioAuth = usuarioRepository
-                .findByEmail(emailLogueado)
-                .orElseThrow(() ->
-                    new SecurityException(
-                        "Usuario no encontrado en la BD: " + emailLogueado
-                    )
-                );
-
-            Empleado empleadoEjecutor = empleadoRepository
-                .findByIdPersona(usuarioAuth.getPersona().getIdPersona())
-                .orElseThrow(() ->
-                    new SecurityException(
-                        "Operación denegada: El usuario autenticado no posee perfil de Empleado."
-                    )
-                );
-
-            if (cambioPrecioCosto || cambioPrecioVenta) {
-                HistorialPrecio historial = new HistorialPrecio();
-                historial.setProducto(producto);
-                historial.setPrecioCostoAnterior(precioCostoAnterior);
-                historial.setPrecioVentaAnterior(precioVentaAnterior);
-                historial.setPrecioCostoNuevo(dto.getPrecioCosto());
-                historial.setPrecioVentaNuevo(dto.getPrecioActual());
-                historial.setFechaCambio(java.time.LocalDateTime.now());
-                historial.setIdEmpleado(empleadoEjecutor.getIdEmpleado());
-                historialPrecioRepository.save(historial);
-            }
-
-            if (cambioStock) {
-                MovimientoStock movimiento = new MovimientoStock();
-                movimiento.setIdProducto(producto.getIdProducto());
-                movimiento.setCantidad(
-                    Math.abs(dto.getStock() - stockAnterior)
-                );
-                movimiento.setTipoMovimiento(
-                    dto.getStock() > stockAnterior
-                        ? "Ingreso Manual"
-                        : "Ajuste Manual"
-                );
-                movimiento.setFecha(java.time.LocalDateTime.now());
-                movimiento.setIdEmpleado(empleadoEjecutor.getIdEmpleado());
-                movimientoStockRepository.save(movimiento);
-            }
-        }
-
-        Producto productoActualizado = productoRepository.save(producto);
-        return mapearAResponseDTO(productoActualizado, true); // true para mostrar stock
     }
 
     public void eliminar(UUID id) {
@@ -394,6 +318,74 @@ public class ProductoService {
 
         producto.setActivo(false);
         productoRepository.save(producto);
+    }
+
+    @Transactional
+    public ProductoResponseDTO actualizarProducto(
+        UUID id,
+        ProductoRequestDTO requestDTO
+    ) {
+        Producto producto = productoRepository
+            .findById(id)
+            .orElseThrow(() ->
+                new EntityNotFoundException(
+                    "Producto con ID " + id + " no encontrado"
+                )
+            );
+
+        UUID idEmpleadoActual = obtenerIdEmpleadoAutenticado();
+
+        // 1. AUDITORÍA DE STOCK
+        int stockAnterior =
+            producto.getStock() != null ? producto.getStock() : 0;
+        int stockNuevo =
+            requestDTO.getStock() != null ? requestDTO.getStock() : 0;
+
+        if (stockAnterior != stockNuevo) {
+            MovimientoStock movimiento = new MovimientoStock();
+            movimiento.setIdProducto(producto.getIdProducto());
+            movimiento.setCantidad(Math.abs(stockNuevo - stockAnterior));
+            movimiento.setTipoMovimiento(
+                stockNuevo > stockAnterior ? "INGRESO" : "EGRESO"
+            );
+            movimiento.setFecha(java.time.LocalDateTime.now());
+            movimiento.setStockResultante(stockNuevo);
+            movimiento.setIdEmpleado(idEmpleadoActual);
+            movimientoStockRepository.save(movimiento);
+        }
+
+        java.math.BigDecimal costoAnt = producto.getPrecioCosto();
+        java.math.BigDecimal costoNue = requestDTO.getPrecioCosto();
+        java.math.BigDecimal ventaAnt = producto.getPrecioActual();
+        java.math.BigDecimal ventaNue = requestDTO.getPrecioActual();
+
+        boolean cambioPrecioCosto =
+            costoAnt != null &&
+            costoNue != null &&
+            costoAnt.compareTo(costoNue) != 0;
+        boolean cambioPrecioVenta =
+            ventaAnt != null &&
+            ventaNue != null &&
+            ventaAnt.compareTo(ventaNue) != 0;
+
+        if (cambioPrecioCosto || cambioPrecioVenta) {
+            HistorialPrecio historial = new HistorialPrecio();
+            historial.setProducto(producto);
+            historial.setPrecioCostoAnterior(costoAnt);
+            historial.setPrecioVentaAnterior(ventaAnt);
+            historial.setPrecioCostoNuevo(costoNue);
+            historial.setPrecioVentaNuevo(ventaNue);
+            historial.setFechaCambio(java.time.LocalDateTime.now());
+            historialPrecioRepository.save(historial);
+        }
+
+        producto.setNombreProducto(requestDTO.getNombreProducto());
+        producto.setPrecioCosto(costoNue);
+        producto.setPrecioActual(ventaNue);
+        producto.setStock(stockNuevo);
+        producto.setAtributosEspecificos(requestDTO.getAtributosEspecificos());
+
+        return mapearAResponseDTO(productoRepository.save(producto));
     }
 
     public List<HistorialPrecioResponseDTO> obtenerHistorialPrecios(
@@ -424,7 +416,6 @@ public class ProductoService {
                 dto.setPrecioVentaNuevo(h.getPrecioVentaNuevo());
                 dto.setFechaCambio(h.getFechaCambio());
 
-                // --- Lógica para buscar el nombre real del empleado ---
                 String nombreCompleto = "Sistema / Desconocido";
 
                 if (h.getIdEmpleado() != null) {

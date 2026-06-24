@@ -1,9 +1,15 @@
 package com.gotechy.bookly.modules.catalogo.dto;
 
-import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -46,6 +52,10 @@ public class ProductoRequestDTO {
 
     @NotNull(message = "El ID del rango etario es obligatorio")
     private Integer idRangoEtario;
+
+    @NotNull(message = "El stock es obligatorio")
+    @Min(value = 0, message = "El stock no puede ser negativo")
+    private Integer stock = 0;
 
     @NotEmpty(message = "El producto debe tener al menos una categoría")
     private List<Integer> idsCategorias;

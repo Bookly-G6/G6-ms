@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,28 +33,23 @@ public class ProductoController {
     private final JsonAtributosValidator jsonValidator;
 
     @GetMapping
-    public ResponseEntity<List<ProductoResponseDTO>> listarProductos(
-        org.springframework.security.core.Authentication auth
-    ) {
-        boolean esAdmin =
-            auth != null &&
-            auth
-                .getAuthorities()
-                .stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (esAdmin) {
-            return ResponseEntity.ok(productoService.listarTodos());
-        }
-
-        return ResponseEntity.ok(productoService.listarActivos());
+    public ResponseEntity<List<ProductoResponseDTO>> listarProductos() {
+        Authentication authentication =
+            SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(
+            productoService.listarSegunRol(authentication)
+        );
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductoResponseDTO> obtenerProductoPorId(
         @PathVariable UUID id
     ) {
-        return ResponseEntity.ok(productoService.obtenerActivoPorId(id));
+        Authentication authentication =
+            SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(
+            productoService.obtenerSegunRolPorId(id, authentication)
+        );
     }
 
     @PostMapping

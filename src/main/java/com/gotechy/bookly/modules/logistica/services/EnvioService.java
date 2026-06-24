@@ -3,16 +3,14 @@ package com.gotechy.bookly.modules.logistica.services;
 import com.gotechy.bookly.core.enums.EstadoLogistica;
 import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
-import com.gotechy.bookly.modules.logistica.dto.EnvioRequestDTO;
-import com.gotechy.bookly.modules.logistica.dto.EnvioResponseDTO;
+import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
+import com.gotechy.bookly.modules.logistica.dto.*;
 import com.gotechy.bookly.modules.logistica.model.Envio;
 import com.gotechy.bookly.modules.logistica.model.HistorialEnvio;
 import com.gotechy.bookly.modules.logistica.repository.EnvioRepository;
 import com.gotechy.bookly.modules.logistica.repository.HistorialEnvioRepository;
-import com.gotechy.bookly.modules.ventas.model.Cliente;
-import com.gotechy.bookly.modules.ventas.model.Venta;
-import com.gotechy.bookly.modules.ventas.repository.ClienteRepository;
-import com.gotechy.bookly.modules.ventas.repository.VentaRepository;
+import com.gotechy.bookly.modules.ventas.model.*;
+import com.gotechy.bookly.modules.ventas.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +37,8 @@ public class EnvioService {
     private final VentaRepository ventaRepository;
     private final ClienteRepository clienteRepository;
     private final UsuarioRepository usuarioRepository;
+    private final DetalleVentaRepository detalleVentaRepository;
+    private final ProductoRepository productoRepository;
 
     @Transactional
     public EnvioResponseDTO inicializarEnvio(EnvioRequestDTO requestDTO) {
@@ -58,16 +58,16 @@ public class EnvioService {
         nuevoEnvio.setEstadoLogistica(EstadoLogistica.EN_PREPARACION);
         nuevoEnvio.setObservaciones(requestDTO.getObservaciones());
 
-        nuevoEnvio.setDireccionEntrega(requestDTO.getDireccionEntrega());
-
-        java.time.LocalDate hoy = java.time.LocalDate.now();
-
-        if (requestDTO.getTipoEnvio().name().equals("RETIRO_SUCURSAL")) {
+        if ("RETIRO_LOCAL".equals(requestDTO.getTipoEnvio().name())) {
             nuevoEnvio.setCodigoRetiro(generarCodigoRetiro());
             nuevoEnvio.setDireccionEntrega("Sucursal Bookly (Retiro en Local)");
-            nuevoEnvio.setFechaEstimadaEntrega(hoy.plusDays(2));
+            nuevoEnvio.setFechaEstimadaEntrega(
+                java.time.LocalDate.now().plusDays(2)
+            );
         } else {
-            nuevoEnvio.setFechaEstimadaEntrega(hoy.plusDays(7));
+            nuevoEnvio.setFechaEstimadaEntrega(
+                java.time.LocalDate.now().plusDays(7)
+            );
         }
 
         Envio envioGuardado = envioRepository.save(nuevoEnvio);
@@ -80,6 +80,91 @@ public class EnvioService {
         );
 
         return mapearAResponseDTO(envioGuardado);
+    }
+
+    @Transactional(readOnly = true)
+    public EnvioEnriquecidoDTO obtenerDetalleEnvioCompleto(UUID idEnvio) {
+        // 1. Obtener Envio
+        Envio envio = envioRepository
+            .findById(idEnvio)
+            .orElseThrow(() ->
+                new EntityNotFoundException("Envío no encontrado")
+            );
+
+        // 2. Obtener Venta
+        Venta venta = ventaRepository
+            .findById(envio.getIdVenta())
+            .orElseThrow(() ->
+                new EntityNotFoundException("Venta no encontrada")
+            );
+
+        // 3. Obtener Cliente
+        Cliente cliente = clienteRepository
+            .findById(venta.getIdCliente())
+            .orElseThrow(() ->
+                new EntityNotFoundException("Cliente no encontrado")
+            );
+
+        // 4. Obtener Detalles
+        List<DetalleVenta> detalles = detalleVentaRepository.findByIdVenta(
+            venta.getIdVenta()
+        );
+
+        // 5. Mapear
+        EnvioEnriquecidoDTO dto = new EnvioEnriquecidoDTO();
+        dto.setIdEnvio(envio.getIdEnvio());
+        dto.setTipoEnvio(
+            envio.getTipoEnvio() != null ? envio.getTipoEnvio().name() : "N/A"
+        );
+        dto.setEstadoLogistica(
+            envio.getEstadoLogistica() != null
+                ? envio.getEstadoLogistica().name()
+                : "N/A"
+        );
+        dto.setNumeroTracking(envio.getNumeroTracking());
+        dto.setFechaEstimadaEntrega(envio.getFechaEstimadaEntrega());
+        dto.setDireccionEntrega(envio.getDireccionEntrega());
+
+        dto.setNombreCliente(
+            cliente.getPersona().getNombre() +
+                " " +
+                cliente.getPersona().getApellido()
+        );
+        dto.setTelefonoCliente(cliente.getPersona().getTelefono());
+
+        // Corrección aquí: Usamos getTotalFinal() como dice tu modelo Venta
+        dto.setTotalVenta(
+            venta.getTotalFinal() != null
+                ? venta.getTotalFinal().doubleValue()
+                : 0.0
+        );
+
+        List<DetalleProductoDTO> listaProductos = detalles
+            .stream()
+            .map(d -> {
+                DetalleProductoDTO item = new DetalleProductoDTO();
+
+                // Buscamos el nombre del producto usando el repo
+                var producto = productoRepository
+                    .findById(d.getIdProducto())
+                    .orElseThrow(() ->
+                        new EntityNotFoundException("Producto no encontrado")
+                    );
+
+                item.setNombreProducto(producto.getNombreProducto());
+                item.setCantidad(d.getCantidad());
+                // Corrección aquí: Usamos getPrecioUnitario() como dice tu modelo DetalleVenta
+                item.setPrecioUnitario(
+                    d.getPrecioUnitario() != null
+                        ? d.getPrecioUnitario().doubleValue()
+                        : 0.0
+                );
+                return item;
+            })
+            .collect(Collectors.toList());
+
+        dto.setProductos(listaProductos);
+        return dto;
     }
 
     @Transactional
@@ -144,9 +229,7 @@ public class EnvioService {
         Envio envio = envioRepository
             .findByIdVentaAndActivoTrue(idVenta)
             .orElseThrow(() ->
-                new EntityNotFoundException(
-                    "No se encontró un envío activo para la venta solicitada"
-                )
+                new EntityNotFoundException("No se encontró un envío activo")
             );
 
         Authentication auth =
@@ -154,7 +237,6 @@ public class EnvioService {
         if (!esAdmin(auth)) {
             verificarPropiedadVenta(idVenta, auth.getName());
         }
-
         return mapearAResponseDTO(envio);
     }
 
@@ -166,17 +248,17 @@ public class EnvioService {
         int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        EstadoLogistica estado = EstadoLogistica.EN_PREPARACION;
-
-        Page<Envio> enviosPage = envioRepository.buscarEnviosDinamicos(
-            estado,
-            idVenta,
-            terminoBusqueda,
-            pageable
-        );
-
-        return enviosPage.map(this::mapearAResponseDTO);
+        return envioRepository
+            .buscarEnviosDinamicos(
+                EstadoLogistica.EN_PREPARACION,
+                idVenta,
+                terminoBusqueda,
+                pageable
+            )
+            .map(this::mapearAResponseDTO);
     }
+
+    // --- MÉTODOS PRIVADOS AUXILIARES ---
 
     private void verificarPropiedadVenta(UUID idVenta, String email) {
         Venta venta = ventaRepository
@@ -187,7 +269,7 @@ public class EnvioService {
         UUID idCliente = resolverIdCliente(email);
         if (!idCliente.equals(venta.getIdCliente())) {
             throw new AccessDeniedException(
-                "No tienes permiso para ver el envío de esta venta."
+                "No tienes permiso para ver el envío."
             );
         }
     }
@@ -202,9 +284,7 @@ public class EnvioService {
             .findByIdPersona(usuario.getPersona().getIdPersona())
             .map(Cliente::getIdCliente)
             .orElseThrow(() ->
-                new AccessDeniedException(
-                    "El usuario no tiene perfil de cliente."
-                )
+                new AccessDeniedException("Perfil de cliente no encontrado.")
             );
     }
 
@@ -220,17 +300,17 @@ public class EnvioService {
 
     private void registrarHistorial(
         Envio envio,
-        EstadoLogistica estadoAnterior,
-        EstadoLogistica estadoNuevo,
-        String observaciones,
-        UUID idEmpleado
+        EstadoLogistica ant,
+        EstadoLogistica nue,
+        String obs,
+        UUID emp
     ) {
         HistorialEnvio historial = new HistorialEnvio();
         historial.setEnvio(envio);
-        historial.setEstadoAnterior(estadoAnterior);
-        historial.setEstadoNuevo(estadoNuevo);
-        historial.setObservaciones(observaciones);
-        historial.setIdEmpleado(idEmpleado);
+        historial.setEstadoAnterior(ant);
+        historial.setEstadoNuevo(nue);
+        historial.setObservaciones(obs);
+        historial.setIdEmpleado(emp);
         historialEnvioRepository.save(historial);
     }
 
@@ -240,7 +320,6 @@ public class EnvioService {
         dto.setIdVenta(envio.getIdVenta());
         dto.setDireccionEntrega(envio.getDireccionEntrega());
         dto.setFechaEstimadaEntrega(envio.getFechaEstimadaEntrega());
-
         dto.setTipoEnvio(
             envio.getTipoEnvio() != null
                 ? envio.getTipoEnvio().name()
@@ -251,7 +330,6 @@ public class EnvioService {
                 ? envio.getEstadoLogistica().name()
                 : "DESCONOCIDO"
         );
-
         dto.setCodigoRetiro(envio.getCodigoRetiro());
         dto.setEmpresaCorreo(envio.getEmpresaCorreo());
         dto.setNumeroTracking(envio.getNumeroTracking());

@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gotechy.bookly.modules.ventas.dto.EmpleadoCatalogResponseDTO;
+import com.gotechy.bookly.modules.ventas.dto.FormaPagoCatalogResponseDTO;
+import com.gotechy.bookly.modules.ventas.dto.TipoVentaCatalogResponseDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaCheckoutRequestDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaResponseDTO;
 import com.gotechy.bookly.modules.ventas.services.VentaService;
@@ -31,6 +34,24 @@ public class VentaController {
     @PreAuthorize("hasAnyRole('ADMIN','CLIENTE','VENDEDOR')")
     public ResponseEntity<VentaResponseDTO> checkout(@Valid @RequestBody VentaCheckoutRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ventaService.checkout(request));
+    }
+
+    @GetMapping("/tipos-venta")
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENTE','VENDEDOR')")
+    public ResponseEntity<List<TipoVentaCatalogResponseDTO>> listarTiposVenta() {
+        return ResponseEntity.ok(ventaService.listarTiposVenta());
+    }
+
+    @GetMapping("/formas-pago")
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENTE','VENDEDOR')")
+    public ResponseEntity<List<FormaPagoCatalogResponseDTO>> listarFormasPago() {
+        return ResponseEntity.ok(ventaService.listarFormasPago());
+    }
+
+    @GetMapping("/empleados")
+    @PreAuthorize("hasAnyRole('ADMIN','VENDEDOR')")
+    public ResponseEntity<List<EmpleadoCatalogResponseDTO>> listarEmpleados() {
+        return ResponseEntity.ok(ventaService.listarEmpleados());
     }
 
     @GetMapping
