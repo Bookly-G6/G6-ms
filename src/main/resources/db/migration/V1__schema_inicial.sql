@@ -213,8 +213,7 @@ CREATE TABLE public.empleado (
     id_empleado uuid NOT NULL,
     id_persona uuid NOT NULL,
     legajo character varying(100),
-    cargo character varying(100),
-    id_sucursal integer NOT NULL
+    cargo character varying(100)
 );
 
 
@@ -274,9 +273,8 @@ ALTER SEQUENCE public.estado_venta_id_estado_venta_seq OWNER TO postgres;
 ALTER SEQUENCE public.estado_venta_id_estado_venta_seq OWNED BY public.estado_venta.id_estado_venta;
 
 
---
--- Name: forma_pago; Type: TABLE; Schema: public; Owner: postgres
---
+
+
 
 CREATE TABLE public.forma_pago (
     id_forma_pago integer NOT NULL,
@@ -388,30 +386,17 @@ ALTER SEQUENCE public.historial_precio_id_historial_seq OWNED BY public.historia
 
 
 --
--- Name: inventario; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.inventario (
-    id_sucursal integer NOT NULL,
-    id_producto uuid NOT NULL,
-    stock integer DEFAULT 0 NOT NULL
-);
-
-
-ALTER TABLE public.inventario OWNER TO postgres;
-
---
 -- Name: movimiento_stock; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.movimiento_stock (
     id_movimiento integer NOT NULL,
-    id_sucursal integer NOT NULL,
     id_producto uuid NOT NULL,
     cantidad integer NOT NULL,
     tipo_movimiento character varying(100) NOT NULL,
     fecha timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    id_empleado uuid NOT NULL
+    id_empleado uuid NOT NULL,
+    stock_resultante integer
 );
 
 
@@ -469,7 +454,8 @@ CREATE TABLE public.producto (
     id_tipo_producto integer NOT NULL,
     id_editorial_sello integer NOT NULL,
     id_rango_etario integer NOT NULL,
-    atributos_especificos jsonb
+    atributos_especificos jsonb,
+    stock integer DEFAULT 0 NOT NULL
 );
 
 
@@ -604,42 +590,6 @@ ALTER SEQUENCE public.rol_id_rol_seq OWNED BY public.rol.id_rol;
 
 
 --
--- Name: sucursal; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.sucursal (
-    id_sucursal integer NOT NULL,
-    nombre character varying(255) NOT NULL,
-    direccion character varying(255),
-    activa boolean DEFAULT true
-);
-
-
-ALTER TABLE public.sucursal OWNER TO postgres;
-
---
--- Name: sucursal_id_sucursal_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.sucursal_id_sucursal_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.sucursal_id_sucursal_seq OWNER TO postgres;
-
---
--- Name: sucursal_id_sucursal_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.sucursal_id_sucursal_seq OWNED BY public.sucursal.id_sucursal;
-
-
---
 -- Name: tipo_producto; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -701,7 +651,6 @@ CREATE TABLE public.venta (
     total_final numeric(10,2) NOT NULL,
     origen_venta character varying(50) NOT NULL,
     id_estado_venta integer NOT NULL,
-    id_sucursal integer NOT NULL,
     id_cliente uuid,
     id_empleado uuid
 );
@@ -830,13 +779,6 @@ ALTER TABLE ONLY public.rol ALTER COLUMN id_rol SET DEFAULT nextval('public.rol_
 
 
 --
--- Name: sucursal id_sucursal; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.sucursal ALTER COLUMN id_sucursal SET DEFAULT nextval('public.sucursal_id_sucursal_seq'::regclass);
-
-
---
 -- Name: tipo_producto id_tipo_producto; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -962,6 +904,7 @@ ALTER TABLE ONLY public.estado_venta
     ADD CONSTRAINT estado_venta_pkey PRIMARY KEY (id_estado_venta);
 
 
+
 --
 -- Name: forma_pago forma_pago_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
@@ -984,14 +927,6 @@ ALTER TABLE ONLY public.historial_envio
 
 ALTER TABLE ONLY public.historial_precio
     ADD CONSTRAINT historial_precio_pkey PRIMARY KEY (id_historial);
-
-
---
--- Name: inventario inventario_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.inventario
-    ADD CONSTRAINT inventario_pkey PRIMARY KEY (id_sucursal, id_producto);
 
 
 --
@@ -1067,14 +1002,6 @@ ALTER TABLE ONLY public.rol
 
 
 --
--- Name: sucursal sucursal_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.sucursal
-    ADD CONSTRAINT sucursal_pkey PRIMARY KEY (id_sucursal);
-
-
---
 -- Name: tipo_producto tipo_producto_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1120,6 +1047,7 @@ ALTER TABLE ONLY public.venta_pago
 
 ALTER TABLE ONLY public.venta
     ADD CONSTRAINT venta_pkey PRIMARY KEY (id_venta);
+
 
 
 --
@@ -1222,14 +1150,6 @@ ALTER TABLE ONLY public.empleado
 
 
 --
--- Name: empleado fk_empleado_sucursal; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empleado
-    ADD CONSTRAINT fk_empleado_sucursal FOREIGN KEY (id_sucursal) REFERENCES public.sucursal(id_sucursal);
-
-
---
 -- Name: envio fk_envio_venta; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1270,22 +1190,6 @@ ALTER TABLE ONLY public.historial_precio
 
 
 --
--- Name: inventario fk_inv_producto; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.inventario
-    ADD CONSTRAINT fk_inv_producto FOREIGN KEY (id_producto) REFERENCES public.producto(id_producto);
-
-
---
--- Name: inventario fk_inv_sucursal; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.inventario
-    ADD CONSTRAINT fk_inv_sucursal FOREIGN KEY (id_sucursal) REFERENCES public.sucursal(id_sucursal);
-
-
---
 -- Name: movimiento_stock fk_mov_empleado; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1299,14 +1203,6 @@ ALTER TABLE ONLY public.movimiento_stock
 
 ALTER TABLE ONLY public.movimiento_stock
     ADD CONSTRAINT fk_mov_producto FOREIGN KEY (id_producto) REFERENCES public.producto(id_producto);
-
-
---
--- Name: movimiento_stock fk_mov_sucursal; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.movimiento_stock
-    ADD CONSTRAINT fk_mov_sucursal FOREIGN KEY (id_sucursal) REFERENCES public.sucursal(id_sucursal);
 
 
 --
@@ -1403,14 +1299,6 @@ ALTER TABLE ONLY public.venta
 
 ALTER TABLE ONLY public.venta
     ADD CONSTRAINT fk_venta_estado FOREIGN KEY (id_estado_venta) REFERENCES public.estado_venta(id_estado_venta);
-
-
---
--- Name: venta fk_venta_sucursal; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.venta
-    ADD CONSTRAINT fk_venta_sucursal FOREIGN KEY (id_sucursal) REFERENCES public.sucursal(id_sucursal);
 
 
 --

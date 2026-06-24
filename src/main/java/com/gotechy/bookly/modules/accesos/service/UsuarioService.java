@@ -165,7 +165,6 @@ public class UsuarioService {
                 Empleado empleado = new Empleado();
                 empleado.setIdEmpleado(UUID.randomUUID());
                 empleado.setIdPersona(idPersona);
-                empleado.setIdSucursal(1);
                 empleado.setLegajo("EMP-" + idPersona.toString().substring(0, 8).toUpperCase());
                 empleado.setCargo(rolNombre);
                 return empleadoRepository.save(empleado);

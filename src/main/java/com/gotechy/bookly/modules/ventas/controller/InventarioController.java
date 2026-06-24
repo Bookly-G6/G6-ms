@@ -36,13 +36,10 @@ public class InventarioController {
         return ResponseEntity.ok(inventarioService.listarInventario());
     }
 
-    @GetMapping("/{idSucursal}/{idProducto}")
+    @GetMapping("/{idProducto}")
     @PreAuthorize("hasAnyRole('ADMIN','VENDEDOR')")
-    public ResponseEntity<InventarioResponseDTO> obtenerInventario(
-        @PathVariable Integer idSucursal,
-        @PathVariable UUID idProducto
-    ) {
-        return ResponseEntity.ok(inventarioService.obtenerInventario(idSucursal, idProducto));
+    public ResponseEntity<InventarioResponseDTO> obtenerInventario(@PathVariable UUID idProducto) {
+        return ResponseEntity.ok(inventarioService.obtenerInventario(idProducto));
     }
 
     @GetMapping("/movimientos")

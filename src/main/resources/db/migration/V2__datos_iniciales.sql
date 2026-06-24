@@ -1,5 +1,3 @@
-
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -27,15 +25,12 @@ INSERT INTO public.autor_artista VALUES (3, 'Robert C. Martin', 'Ingeniero de so
 -- Data for Name: persona; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.persona VALUES ('a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', 'Carlos', 'Logístico', '20111222', NULL);
-INSERT INTO public.persona VALUES ('c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3', 'Lucía', 'Compradora', '30444555', NULL);
 
 
 --
 -- Data for Name: cliente; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.cliente VALUES ('b4b4b4b4-b4b4-b4b4-b4b4-b4b4b4b4b4b4', 'c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3', 0);
 
 
 --
@@ -75,17 +70,16 @@ INSERT INTO public.rango_etario VALUES (6, 'Adultos (18+)');
 INSERT INTO public.tipo_producto VALUES (1, 'Libro Físico', true);
 INSERT INTO public.tipo_producto VALUES (2, 'E-book', true);
 INSERT INTO public.tipo_producto VALUES (3, 'Audiolibro', true);
-INSERT INTO public.tipo_producto VALUES (4, 'Libro Físico', true);
-INSERT INTO public.tipo_producto VALUES (5, 'E-book', true);
-INSERT INTO public.tipo_producto VALUES (6, 'Manga', true);
+INSERT INTO public.tipo_producto VALUES (4, 'Manga', true);
+INSERT INTO public.tipo_producto VALUES (5, 'Comic', true);
+INSERT INTO public.tipo_producto VALUES (6, 'Vinilo', true);
 
 
 --
 -- Data for Name: producto; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.producto VALUES ('7ce9f235-3215-4ab9-b3a0-a31e3d9b6a53', '9780132350884', 'Clean Code: A Handbook of Agile Software Craftsmanship', 'El libro definitivo para aprender a escribir código limpio, mantenible y escalable.', 12000.50, 28500.00, false, 1, 2, 3, '{"tapa": "blanda", "idioma": "español", "paginas": 464, "edicion_limitada": false}');
-
+INSERT INTO public.producto VALUES ('11111111-1111-1111-1111-111111111111', '9780132350884', 'Clean Code', 'Referencia esencial de desarrollo', 2500.00, 3500.00, true, 1, 1, 1, '{"edicion":"1"}'::jsonb, 12);
 
 --
 -- Data for Name: carrito_item; Type: TABLE DATA; Schema: public; Owner: postgres
@@ -106,17 +100,9 @@ INSERT INTO public.categoria VALUES (6, 'Terror', true);
 
 
 --
--- Data for Name: sucursal; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-INSERT INTO public.sucursal VALUES (1, 'Sucursal Central Formosa', NULL, true);
-
-
---
 -- Data for Name: empleado; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.empleado VALUES ('e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2', 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', NULL, NULL, 1);
 
 
 --
@@ -130,13 +116,14 @@ INSERT INTO public.estado_venta VALUES (1, 'CONFIRMADA');
 -- Data for Name: promocion; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO public.promocion VALUES (1, 'Descuento 5%', 5.00, true);
+INSERT INTO public.promocion VALUES (2, 'Descuento 10%', 10.00, true);
 
 
 --
 -- Data for Name: venta; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.venta VALUES ('77777777-7777-7777-7777-777777777777', '2026-06-20 21:44:40.757311', 0.00, 0.00, 'WEB', 1, 1, 'b4b4b4b4-b4b4-b4b4-b4b4-b4b4b4b4b4b4', 'e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2');
 
 
 --
@@ -149,31 +136,27 @@ INSERT INTO public.venta VALUES ('77777777-7777-7777-7777-777777777777', '2026-0
 -- Data for Name: envio; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.envio VALUES ('b7f80904-7c7d-4c8d-a2fc-e8265eafc292', '77777777-7777-7777-7777-777777777777', 'DOMICILIO', 'DESPACHADO', 'Andreani', 'AR-987654321X', NULL, 'El timbre no funciona bien, golpear las manos por favor.', '2026-06-20 21:45:40.649815', true);
+
 
 
 --
 -- Data for Name: forma_pago; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO public.forma_pago VALUES (1, 'Efectivo');
+INSERT INTO public.forma_pago VALUES (2, 'Transferencia');
+INSERT INTO public.forma_pago VALUES (3, 'Tarjeta de crédito');
+INSERT INTO public.forma_pago VALUES (4, 'Tarjeta de débito');
 
 
 --
 -- Data for Name: historial_envio; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.historial_envio VALUES (1, 'b7f80904-7c7d-4c8d-a2fc-e8265eafc292', NULL, 'EN_PREPARACION', '2026-06-20 21:45:40.660785', 'Envío inicializado por el sistema', NULL);
-INSERT INTO public.historial_envio VALUES (2, 'b7f80904-7c7d-4c8d-a2fc-e8265eafc292', 'EN_PREPARACION', 'DESPACHADO', '2026-06-20 21:46:33.250767', 'Cambio de estado logístico', 'e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2');
 
 
 --
 -- Data for Name: historial_precio; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-
-
---
--- Data for Name: inventario; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 
@@ -188,20 +171,21 @@ INSERT INTO public.historial_envio VALUES (2, 'b7f80904-7c7d-4c8d-a2fc-e8265eafc
 -- Data for Name: producto_autor; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.producto_autor VALUES ('7ce9f235-3215-4ab9-b3a0-a31e3d9b6a53', 1);
 
 
 --
 -- Data for Name: producto_categoria; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.producto_categoria VALUES ('7ce9f235-3215-4ab9-b3a0-a31e3d9b6a53', 1);
 
 
 --
 -- Data for Name: rol; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO public.rol VALUES (1, 'CLIENTE');
+INSERT INTO public.rol VALUES (2, 'ADMIN');
+INSERT INTO public.rol VALUES (3, 'VENDEDOR');
 
 
 --
@@ -255,7 +239,7 @@ SELECT pg_catalog.setval('public.estado_venta_id_estado_venta_seq', 1, false);
 -- Name: forma_pago_id_forma_pago_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.forma_pago_id_forma_pago_seq', 1, false);
+SELECT pg_catalog.setval('public.forma_pago_id_forma_pago_seq', 4, true);
 
 
 --
@@ -283,7 +267,7 @@ SELECT pg_catalog.setval('public.movimiento_stock_id_movimiento_seq', 1, false);
 -- Name: promocion_id_promocion_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.promocion_id_promocion_seq', 1, false);
+SELECT pg_catalog.setval('public.promocion_id_promocion_seq', 2, true);
 
 
 --
@@ -301,13 +285,6 @@ SELECT pg_catalog.setval('public.rol_id_rol_seq', 1, false);
 
 
 --
--- Name: sucursal_id_sucursal_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.sucursal_id_sucursal_seq', 1, false);
-
-
---
 -- Name: tipo_producto_id_tipo_producto_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -320,8 +297,4 @@ SELECT pg_catalog.setval('public.tipo_producto_id_tipo_producto_seq', 6, true);
 
 SELECT pg_catalog.setval('public.venta_pago_id_venta_pago_seq', 1, false);
 
-
---
--- PostgreSQL database dump complete
---
 

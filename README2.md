@@ -626,11 +626,11 @@ Cuando la API devuelve un error (códigos HTTP `400`, `401`, `403`, `404`, `409`
     * `pagos` (List, no vacío)
       * Cada pago requiere: `idFormaPago` (Integer) y `montoAbonado` (Decimal)
   * **Opcionales**:
-    * `idSucursal` (Integer, obligatorio para ventas en local/sucursal)
+    * `idEmpleado` (UUID, opcional para ventas en caja física)
     * `idCliente` (UUID, si un Administrador o Vendedor realiza la compra por cuenta de un Cliente)
     * `idEmpleado` (UUID, para registrar quién operó la venta en caja física)
     * `generarEnvio` (Boolean, si es `true` requiere definir tipo de envío)
-    * `tipoEnvio` (String/Enum: `DOMICILIO`, `RETIRO_SUCURSAL`, `DIGITAL`)
+    * `tipoEnvio` (String/Enum: `DOMICILIO`, `RETIRO_LOCAL`, `DIGITAL`)
     * `observacionesEnvio` (String)
   * *Nota interna de items/pagos*: Cada item puede opcionalmente recibir `idPromocion`.
 * **Ejemplo Request Body**:
@@ -662,7 +662,7 @@ Cuando la API devuelve un error (códigos HTTP `400`, `401`, `403`, `404`, `409`
     "fecha": "2026-06-23T15:45:00",
     "estadoVenta": "ARMANDO_PEDIDO",
     "origenVenta": "WEB",
-    "idSucursal": null,
+    "idEmpleado": null,
     "idCliente": "0a5d4d50-c2e7-4c07-a35a-8f767fcb38ee",
     "idEmpleado": null,
     "subtotalSinDescuentos": 19000.00,
@@ -790,14 +790,14 @@ Cuando la API devuelve un error (códigos HTTP `400`, `401`, `403`, `404`, `409`
 * **Body (JSON)**:
   * **Obligatorios**:
     * `idVenta` (UUID)
-    * `tipoEnvio` (String/Enum: `DOMICILIO` o `RETIRO_SUCURSAL`)
+    * `tipoEnvio` (String/Enum: `DOMICILIO` o `RETIRO_LOCAL`)
   * **Opcionales**:
     * `observaciones` (String)
 * **Ejemplo Request Body**:
   ```json
   {
     "idVenta": "11a62d4c-e8cf-4328-9860-2ffcaee31b90",
-    "tipoEnvio": "RETIRO_SUCURSAL",
+    "tipoEnvio": "RETIRO_LOCAL",
     "observaciones": "Retirar por sucursal centro"
   }
   ```
@@ -856,8 +856,8 @@ Cuando la API devuelve un error (códigos HTTP `400`, `401`, `403`, `404`, `409`
   ]
   ```
 
-#### 2. Obtener Stock de un Producto en una Sucursal Específica
-* **Endpoint**: `GET /api/v1/inventario/{idSucursal}/{idProducto}`
+#### 2. Obtener Stock de un Producto
+* **Endpoint**: `GET /api/v1/inventario/{idProducto}`
 * **Respuesta Esperada (200 OK)**:
   *(Retorna un único objeto `InventarioResponseDTO` con los datos de stock).*
 
@@ -893,7 +893,7 @@ Cuando la API devuelve un error (códigos HTTP `400`, `401`, `403`, `404`, `409`
     * `tipoMovimiento` (String, ej: `"ENTRADA"`, `"SALIDA"`, `"AJUSTE"`)
     * `idEmpleado` (UUID)
   * **Opcionales**:
-    * `idSucursal` (Integer)
+    * No requiere sucursal
 * **Ejemplo Request Body**:
   ```json
   {

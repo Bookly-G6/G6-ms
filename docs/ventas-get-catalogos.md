@@ -27,7 +27,7 @@ Esta guía resume los endpoints GET para mostrar datos completos en UI (no solo 
   {
     "codigo": "LOCAL",
     "nombre": "Venta local",
-    "descripcion": "Venta presencial atendida por personal de sucursal",
+    "descripcion": "Venta presencial atendida por personal autorizado",
     "requiereEmpleado": true,
     "generaEnvioAutomatico": false
   }
@@ -76,7 +76,7 @@ Uso recomendado en frontend:
   {
     "idEmpleado": "e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2",
     "idPersona": "a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1",
-    "idSucursal": 1,
+    "idEmpleado": "uuid",
     "nombreCompleto": "Carlos Logistico",
     "nombre": "Carlos",
     "apellido": "Logistico",
@@ -90,10 +90,10 @@ Uso recomendado en frontend:
 - Mostrar `nombreCompleto` (o `nombre` + `apellido`).
 - Guardar y enviar `idEmpleado` en las operaciones que lo requieran.
 
-## Cambio funcional aplicado: sucursal fija en backend
+## Cambio funcional aplicado: stock directo en producto
 
 Para simplificar el frontend:
-- En `POST /ventas/checkout`, el backend fija `idSucursal = 1`.
-- En movimientos de stock (`/inventario/movimientos`), el backend fija `idSucursal = 1`.
+- En `POST /ventas/checkout`, el backend actualiza el stock directamente sobre el producto.
+- En movimientos de stock (`/inventario/movimientos`), el backend actualiza el stock directamente sobre el producto.
 
 Esto significa que el frontend ya no necesita pedir ni enviar sucursal para esos flujos.

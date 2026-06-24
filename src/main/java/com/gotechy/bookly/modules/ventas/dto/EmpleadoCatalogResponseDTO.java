@@ -10,7 +10,6 @@ import lombok.Value;
 public class EmpleadoCatalogResponseDTO {
     UUID idEmpleado;
     UUID idPersona;
-    Integer idSucursal;
     String nombreCompleto;
     String nombre;
     String apellido;

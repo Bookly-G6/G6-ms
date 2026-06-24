@@ -52,7 +52,6 @@ public class EmpleadoService {
         empleado.setIdPersona(persona.getIdPersona());
         empleado.setLegajo(request.getLegajo());
         empleado.setCargo(request.getCargo());
-        empleado.setIdSucursal(request.getIdSucursal());
 
         return EmpleadoResponseDTO.fromEntity(empleadoRepository.saveAndFlush(empleado));
     }
@@ -66,7 +65,6 @@ public class EmpleadoService {
         empleado.setIdPersona(persona.getIdPersona());
         empleado.setLegajo(request.getLegajo());
         empleado.setCargo(request.getCargo());
-        empleado.setIdSucursal(request.getIdSucursal());
 
         return EmpleadoResponseDTO.fromEntity(empleadoRepository.saveAndFlush(empleado));
     }

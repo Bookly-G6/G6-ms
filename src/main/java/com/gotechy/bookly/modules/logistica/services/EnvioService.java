@@ -1,5 +1,16 @@
 package com.gotechy.bookly.modules.logistica.services;
 
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.gotechy.bookly.core.enums.EstadoLogistica;
 import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
@@ -13,17 +24,9 @@ import com.gotechy.bookly.modules.ventas.model.Cliente;
 import com.gotechy.bookly.modules.ventas.model.Venta;
 import com.gotechy.bookly.modules.ventas.repository.ClienteRepository;
 import com.gotechy.bookly.modules.ventas.repository.VentaRepository;
+
 import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +52,7 @@ public class EnvioService {
         nuevoEnvio.setEstadoLogistica(EstadoLogistica.EN_PREPARACION);
         nuevoEnvio.setObservaciones(requestDTO.getObservaciones());
 
-        if (requestDTO.getTipoEnvio().name().equals("RETIRO_SUCURSAL")) {
+        if (requestDTO.getTipoEnvio().name().equals("RETIRO_LOCAL")) {
             nuevoEnvio.setCodigoRetiro(generarCodigoRetiro());
         }
 

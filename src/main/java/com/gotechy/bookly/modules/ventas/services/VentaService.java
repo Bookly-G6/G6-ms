@@ -8,7 +8,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,8 +40,6 @@ import com.gotechy.bookly.modules.ventas.model.DetalleVenta;
 import com.gotechy.bookly.modules.ventas.model.Empleado;
 import com.gotechy.bookly.modules.ventas.model.EstadoVentaCatalog;
 import com.gotechy.bookly.modules.ventas.model.FormaPagoCatalog;
-import com.gotechy.bookly.modules.ventas.model.Inventario;
-import com.gotechy.bookly.modules.ventas.model.InventarioId;
 import com.gotechy.bookly.modules.ventas.model.MovimientoStock;
 import com.gotechy.bookly.modules.ventas.model.Venta;
 import com.gotechy.bookly.modules.ventas.model.VentaPago;
@@ -51,7 +48,6 @@ import com.gotechy.bookly.modules.ventas.repository.DetalleVentaRepository;
 import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
 import com.gotechy.bookly.modules.ventas.repository.EstadoVentaCatalogRepository;
 import com.gotechy.bookly.modules.ventas.repository.FormaPagoCatalogRepository;
-import com.gotechy.bookly.modules.ventas.repository.InventarioRepository;
 import com.gotechy.bookly.modules.ventas.repository.MovimientoStockRepository;
 import com.gotechy.bookly.modules.ventas.repository.VentaPagoRepository;
 import com.gotechy.bookly.modules.ventas.repository.VentaRepository;
@@ -72,12 +68,10 @@ public class VentaService {
     private static final String DNI_CONSUMIDOR_FINAL = "";
     private static final String NOMBRE_CONSUMIDOR_FINAL = "Consumidor";
     private static final String APELLIDO_CONSUMIDOR_FINAL = "Final";
-    private static final int ID_SUCURSAL_DEFAULT = 1;
 
     private final VentaRepository ventaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
     private final VentaPagoRepository ventaPagoRepository;
-    private final InventarioRepository inventarioRepository;
     private final MovimientoStockRepository movimientoStockRepository;
     private final EstadoVentaCatalogRepository estadoVentaCatalogRepository;
     private final FormaPagoCatalogRepository formaPagoCatalogRepository;
@@ -114,7 +108,6 @@ public class VentaService {
         venta.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         venta.setOrigenVenta(origenVenta);
         venta.setIdEstadoVenta(estadoVenta.getIdEstadoVenta());
-        venta.setIdSucursal(ID_SUCURSAL_DEFAULT);
         venta.setIdCliente(idCliente);
         venta.setIdEmpleado(idEmpleado);
         venta.setSubtotalSinDescuentos(BigDecimal.ZERO);
@@ -136,7 +129,7 @@ public class VentaService {
                 throw new IllegalArgumentException("El producto no está disponible: " + idProducto);
             }
 
-            validarYDescontarStock(venta.getIdSucursal(), idProducto, cantidad, idEmpleado);
+            validarYDescontarStock(idProducto, cantidad, idEmpleado);
 
             BigDecimal precioUnitario = producto.getPrecioActual();
             BigDecimal subtotalRenglon = precioUnitario.multiply(BigDecimal.valueOf(cantidad));
@@ -182,7 +175,7 @@ public class VentaService {
                 TipoVentaCatalogResponseDTO.builder()
                         .codigo(ORIGEN_LOCAL)
                         .nombre("Venta local")
-                        .descripcion("Venta presencial atendida por personal de sucursal")
+                        .descripcion("Venta presencial atendida por personal autorizado")
                         .requiereEmpleado(true)
                         .generaEnvioAutomatico(false)
                         .build());
@@ -297,35 +290,29 @@ public class VentaService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe el estado de venta CONFIRMADA"));
     }
 
-    private void validarYDescontarStock(Integer idSucursal, UUID idProducto, Integer cantidad, UUID idEmpleado) {
-        InventarioId inventarioId = new InventarioId(idSucursal, idProducto);
-        Inventario inventario = inventarioRepository.findById(inventarioId)
-                .orElseGet(() -> {
-                    Inventario nuevoInventario = new Inventario();
-                    nuevoInventario.setId(inventarioId);
-                    nuevoInventario.setStock(0);
-                    return nuevoInventario;
-                });
+    private void validarYDescontarStock(UUID idProducto, Integer cantidad, UUID idEmpleado) {
+        Producto producto = productoRepository.findById(idProducto)
+                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + idProducto));
 
-        int stockActual = Optional.ofNullable(inventario.getStock()).orElse(0);
+        int stockActual = Objects.requireNonNullElse(producto.getStock(), 0);
         if (stockActual < cantidad) {
             throw new IllegalArgumentException("Stock insuficiente para el producto: " + idProducto);
         }
 
-        inventario.setStock(stockActual - cantidad);
-        inventarioRepository.save(inventario);
+        producto.setStock(stockActual - cantidad);
+        productoRepository.save(producto);
 
         if (idEmpleado == null) {
             return;
         }
 
         MovimientoStock movimientoStock = new MovimientoStock();
-        movimientoStock.setIdSucursal(idSucursal);
         movimientoStock.setIdProducto(idProducto);
         movimientoStock.setCantidad(cantidad);
         movimientoStock.setTipoMovimiento(MOVIMIENTO_SALIDA);
         movimientoStock.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         movimientoStock.setIdEmpleado(idEmpleado);
+        movimientoStock.setStockResultante(stockActual - cantidad);
         movimientoStockRepository.save(movimientoStock);
     }
 
@@ -420,7 +407,6 @@ public class VentaService {
                 .fecha(venta.getFecha())
                 .estadoVenta(estado == null ? null : estado.getNombreEstado())
                 .origenVenta(venta.getOrigenVenta())
-                .idSucursal(venta.getIdSucursal())
                 .idCliente(venta.getIdCliente())
                 .idEmpleado(venta.getIdEmpleado())
                 .subtotalSinDescuentos(venta.getSubtotalSinDescuentos())
@@ -480,7 +466,6 @@ public class VentaService {
         return EmpleadoCatalogResponseDTO.builder()
                 .idEmpleado(empleado.getIdEmpleado())
                 .idPersona(empleado.getIdPersona())
-                .idSucursal(empleado.getIdSucursal())
                 .nombreCompleto(nombreCompleto)
                 .nombre(nombre)
                 .apellido(apellido)

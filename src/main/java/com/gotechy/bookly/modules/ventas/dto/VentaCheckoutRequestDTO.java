@@ -16,8 +16,6 @@ public class VentaCheckoutRequestDTO {
     @NotBlank(message = "El origen de venta es obligatorio")
     private String origenVenta;
 
-    private Integer idSucursal;
-
     private UUID idCliente;
 
     private UUID idEmpleado;

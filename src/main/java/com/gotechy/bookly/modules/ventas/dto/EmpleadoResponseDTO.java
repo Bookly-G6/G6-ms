@@ -15,7 +15,6 @@ public class EmpleadoResponseDTO {
     private UUID idPersona;
     private String legajo;
     private String cargo;
-    private Integer idSucursal;
 
     public static EmpleadoResponseDTO fromEntity(Empleado empleado) {
         return EmpleadoResponseDTO.builder()
@@ -23,7 +22,6 @@ public class EmpleadoResponseDTO {
                 .idPersona(empleado.getIdPersona())
                 .legajo(empleado.getLegajo())
                 .cargo(empleado.getCargo())
-                .idSucursal(empleado.getIdSucursal())
                 .build();
     }
 }

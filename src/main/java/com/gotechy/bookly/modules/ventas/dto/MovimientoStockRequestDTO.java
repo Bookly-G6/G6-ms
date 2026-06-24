@@ -10,8 +10,6 @@ import lombok.Data;
 @Data
 public class MovimientoStockRequestDTO {
 
-    private Integer idSucursal;
-
     @NotNull(message = "El idProducto es obligatorio")
     private UUID idProducto;
 

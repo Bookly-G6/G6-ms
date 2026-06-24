@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import lombok.Data;
 
 @Data
@@ -15,6 +16,7 @@ public class ProductoResponseDTO {
     private String descripcion;
     private BigDecimal precioCosto;
     private BigDecimal precioActual;
+    private Integer stock;
     private Boolean activo;
 
     private String tipoProducto;

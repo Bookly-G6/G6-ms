@@ -25,9 +25,6 @@ public class Empleado {
     @Column(name = "id_persona", nullable = false)
     private UUID idPersona;
 
-    @Column(name = "id_sucursal")
-    private Integer idSucursal;
-
     @Column(name = "legajo")
     private String legajo;
 

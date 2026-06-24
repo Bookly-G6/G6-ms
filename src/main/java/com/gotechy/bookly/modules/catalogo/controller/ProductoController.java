@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,12 +34,14 @@ public class ProductoController {
 
     @GetMapping
     public ResponseEntity<List<ProductoResponseDTO>> listarProductos() {
-        return ResponseEntity.ok(productoService.listarActivos());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(productoService.listarSegunRol(authentication));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductoResponseDTO> obtenerProductoPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(productoService.obtenerActivoPorId(id));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(productoService.obtenerSegunRolPorId(id, authentication));
     }
 
     @PostMapping

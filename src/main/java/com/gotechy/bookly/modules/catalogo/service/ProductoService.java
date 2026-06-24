@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
@@ -36,14 +38,26 @@ public class ProductoService {
     private final AutorArtistaRepository autorArtistaRepository;
 
     public List<ProductoResponseDTO> listarActivos() {
-        return productoRepository
-            .findByActivoTrue()
-            .stream()
+        return listarSegunRol(null);
+    }
+
+    public List<ProductoResponseDTO> listarSegunRol(Authentication authentication) {
+        boolean esAdmin = esAdmin(authentication);
+
+        List<Producto> productos = esAdmin
+            ? productoRepository.findAll()
+            : productoRepository.findByActivoTrue();
+
+        return productos.stream()
             .map(this::mapearAResponseDTO)
             .toList();
     }
 
     public ProductoResponseDTO obtenerActivoPorId(UUID idProducto) {
+        return obtenerSegunRolPorId(idProducto, null);
+    }
+
+    public ProductoResponseDTO obtenerSegunRolPorId(UUID idProducto, Authentication authentication) {
         UUID productoId = Objects.requireNonNull(idProducto, "El idProducto no puede ser nulo");
 
         Producto producto = productoRepository
@@ -52,7 +66,10 @@ public class ProductoService {
                 new EntityNotFoundException("Producto con ID " + productoId + " no encontrado")
             );
 
-        if (producto.getActivo() == null || !producto.getActivo()) {
+        boolean esAdmin = esAdmin(authentication);
+        boolean activo = Boolean.TRUE.equals(producto.getActivo());
+
+        if (!activo && !esAdmin) {
             throw new EntityNotFoundException("Producto con ID " + productoId + " no encontrado");
         }
 
@@ -109,6 +126,7 @@ public class ProductoService {
         producto.setDescripcion(dto.getDescripcion());
         producto.setPrecioCosto(dto.getPrecioCosto());
         producto.setPrecioActual(dto.getPrecioActual());
+        producto.setStock(Objects.requireNonNullElse(dto.getStock(), 0));
         producto.setTipoProducto(tipoProducto);
         producto.setEditorialSello(editorialSello);
         producto.setRangoEtario(rangoEtario);
@@ -128,6 +146,7 @@ public class ProductoService {
         response.setDescripcion(producto.getDescripcion());
         response.setPrecioCosto(producto.getPrecioCosto());
         response.setPrecioActual(producto.getPrecioActual());
+        response.setStock(Objects.requireNonNullElse(producto.getStock(), 0));
         response.setActivo(producto.getActivo());
         List<String> nombresAutores = producto
             .getAutores()
@@ -156,6 +175,16 @@ public class ProductoService {
         response.setAtributosEspecificos(producto.getAtributosEspecificos());
 
         return response;
+    }
+
+    private boolean esAdmin(Authentication authentication) {
+        if (authentication == null) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch(rol -> "ROLE_ADMIN".equals(rol));
     }
 
     public void eliminar(UUID id) {

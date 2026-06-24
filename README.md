@@ -566,7 +566,7 @@ Rango etario:
 
 - Campos:
   - Obligatorios: `origenVenta`, `items`, `pagos`
-  - Opcionales: `idSucursal` (ignorado), `idCliente`, `idEmpleado`, `generarEnvio`, `tipoEnvio`, `observacionesEnvio`
+  - Opcionales: `idCliente`, `idEmpleado`, `generarEnvio`, `tipoEnvio`, `observacionesEnvio`
 - Validaciones:
   - `items` mínimo 1
   - `pagos` mínimo 1
@@ -601,7 +601,7 @@ Rango etario:
   {
     "codigo": "LOCAL",
     "nombre": "Venta local",
-    "descripcion": "Venta presencial atendida por personal de sucursal",
+    "descripcion": "Venta presencial atendida por personal autorizado",
     "requiereEmpleado": true,
     "generaEnvioAutomatico": false
   }
@@ -636,7 +636,7 @@ Rango etario:
   {
     "idEmpleado": "uuid",
     "idPersona": "uuid",
-    "idSucursal": 1,
+    "idEmpleado": "uuid",
     "nombreCompleto": "Carlos Logistico",
     "nombre": "Carlos",
     "apellido": "Logistico",
@@ -680,7 +680,7 @@ Rango etario:
 - Body: No
 - Respuesta: lista `InventarioResponseDTO`
 
-### `GET /inventario/{idSucursal}/{idProducto}`
+### `GET /inventario/{idProducto}`
 
 - Token: Sí
 - Roles: `ADMIN`, `VENDEDOR`
@@ -720,7 +720,7 @@ Rango etario:
 
 - Campos:
   - Obligatorios: `idProducto`, `cantidad`, `tipoMovimiento` (solo genérico), `idEmpleado`
-  - Opcional: `idSucursal` (ignorado)
+  - No requiere sucursal
 - Validaciones:
   - `cantidad >= 1`
   - `tipoMovimiento` válido: `ENTRADA` o `SALIDA`
@@ -851,7 +851,7 @@ Rango etario:
   - Opcional: `observaciones`
 - `tipoEnvio` permitido:
   - `DOMICILIO`
-  - `RETIRO_SUCURSAL`
+  - `RETIRO_LOCAL`
   - `DIGITAL`
 - Validaciones:
   - no puede existir otro envío activo para la misma venta

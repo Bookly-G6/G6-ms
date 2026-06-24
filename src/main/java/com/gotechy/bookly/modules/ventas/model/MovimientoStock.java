@@ -27,9 +27,6 @@ public class MovimientoStock {
     @Column(name = "id_movimiento")
     private Integer idMovimiento;
 
-    @Column(name = "id_sucursal", nullable = false)
-    private Integer idSucursal;
-
     @Column(name = "id_producto", nullable = false)
     private UUID idProducto;
 

@@ -17,7 +17,4 @@ public class EmpleadoRequestDTO {
 
     @NotBlank(message = "El cargo es obligatorio")
     private String cargo;
-
-    @NotNull(message = "El idSucursal es obligatorio")
-    private Integer idSucursal;
 }

@@ -9,7 +9,6 @@ import lombok.Data;
 public class MovimientoStockResponseDTO {
 
     private Integer idMovimiento;
-    private Integer idSucursal;
     private UUID idProducto;
     private Integer cantidad;
     private String tipoMovimiento;
