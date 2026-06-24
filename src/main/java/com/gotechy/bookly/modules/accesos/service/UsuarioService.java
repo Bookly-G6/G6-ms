@@ -2,6 +2,7 @@ package com.gotechy.bookly.modules.accesos.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
+
+    private static final Set<String> ROLES_PERMITIDOS = Set.of("ADMIN", "CLIENTE", "VENDEDOR");
 
     private final UsuarioRepository usuarioRepository;
     private final PersonaRepository personaRepository;
@@ -64,14 +67,14 @@ public class UsuarioService {
         persona.setTelefono(request.getTelefono());
         persona = personaRepository.saveAndFlush(persona);
 
-        Rol rolCliente = obtenerRolCliente();
+        Rol rol = obtenerRolPermitido(request.getNombreRol());
 
         Usuario usuario = new Usuario();
         usuario.setIdUsuario(UUID.randomUUID());
         usuario.setPersona(persona);
         usuario.setEmail(request.getEmail());
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
-        usuario.setRol(rolCliente);
+        usuario.setRol(rol);
         usuario.setActivo(request.getActivo() == null || request.getActivo());
 
         Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
@@ -108,9 +111,7 @@ public class UsuarioService {
     @Transactional
     public UsuarioResponseDTO actualizarRol(UUID idUsuario, String nombreRol) {
         Usuario usuario = buscarUsuarioPorId(idUsuario);
-        String rolNormalizado = nombreRol == null ? null : nombreRol.trim().toUpperCase();
-        Rol nuevoRol = rolRepository.findByNombreRol(rolNormalizado)
-            .orElseThrow(() -> new IllegalArgumentException("El rol no existe: " + nombreRol));
+        Rol nuevoRol = obtenerRolPermitido(nombreRol);
 
         usuario.setRol(nuevoRol);
         Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
@@ -133,13 +134,14 @@ public class UsuarioService {
             .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado con id: " + idUsuario));
     }
 
-    private Rol obtenerRolCliente() {
-        return rolRepository.findByNombreRol("CLIENTE")
-            .orElseGet(() -> {
-                Rol nuevoRol = new Rol();
-                nuevoRol.setNombreRol("CLIENTE");
-                return rolRepository.save(nuevoRol);
-            });
+    private Rol obtenerRolPermitido(String nombreRol) {
+        String rolNormalizado = nombreRol == null ? null : nombreRol.trim().toUpperCase();
+        if (!ROLES_PERMITIDOS.contains(rolNormalizado)) {
+            throw new IllegalArgumentException("El rol debe ser ADMIN, CLIENTE o VENDEDOR");
+        }
+
+        return rolRepository.findByNombreRol(rolNormalizado)
+            .orElseThrow(() -> new IllegalArgumentException("El rol no existe: " + rolNormalizado));
     }
 
     private void ensureProfiles(Usuario usuario) {
