@@ -64,4 +64,8 @@ public class ProductoRequestDTO {
 
     @NotEmpty(message = "El producto debe tener al menos un autor/artista")
     private List<Integer> idsAutores;
+
+    @NotNull(message = "El stock es obligatorio")
+    @Min(value = 0, message = "El stock no puede ser negativo")
+    private Integer stock;
 }

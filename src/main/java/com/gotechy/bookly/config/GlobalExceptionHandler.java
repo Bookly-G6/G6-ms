@@ -1,10 +1,11 @@
 package com.gotechy.bookly.config;
 
+import com.gotechy.bookly.core.exception.ApiError;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
-
-import com.gotechy.bookly.core.exception.ApiError;
-
-import jakarta.persistence.EntityNotFoundException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -51,7 +49,7 @@ public class GlobalExceptionHandler {
             HttpStatus.NOT_FOUND.value(),
             "Not Found",
             "RESOURCE_NOT_FOUND",
-            
+
             ex.getMessage(),
             request.getDescription(false).replace("uri=", ""),
             List.of()
@@ -70,7 +68,7 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
             "INVALID_JSON",
-            
+
             "El cuerpo de la solicitud no es un JSON válido.",
             request.getDescription(false).replace("uri=", ""),
             List.of(ex.getMessage())
@@ -123,10 +121,13 @@ public class GlobalExceptionHandler {
             "Forbidden",
             "ACCESS_DENIED",
             ex.getMessage() == null || ex.getMessage().isBlank()
-            ? "No tienes permisos para acceder a este recurso."
-            : ex.getMessage(),
+                ? "No tienes permisos para acceder a este recurso."
+                : ex.getMessage(),
             request.getDescription(false).replace("uri=", ""),
-            java.util.List.of("Se requiere rol ADMIN o perfil de cliente según el recurso."));
+            java.util.List.of(
+                "Se requiere rol ADMIN o perfil de cliente según el recurso."
+            )
+        );
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
@@ -135,6 +136,7 @@ public class GlobalExceptionHandler {
         Exception ex,
         WebRequest request
     ) {
+        ex.printStackTrace();
         ApiError error = new ApiError(
             LocalDateTime.now(),
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -142,21 +144,59 @@ public class GlobalExceptionHandler {
             "INTERNAL_ERROR",
             "Ocurrió un error inesperado.",
             request.getDescription(false).replace("uri=", ""),
-            null);
+            null
+        );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-   @ExceptionHandler(IllegalArgumentException.class)
+
+    @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgumentException(
-            IllegalArgumentException ex,
-            WebRequest request) {
+        IllegalArgumentException ex,
+        WebRequest request
+    ) {
         ApiError error = new ApiError(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
-                "BUSINESS_RULE_ERROR",
-                ex.getMessage(), // Acá viaja tu mensaje de error personalizado
-                request.getDescription(false).replace("uri=", ""),
-                null);
+            LocalDateTime.now(),
+            HttpStatus.BAD_REQUEST.value(),
+            "Bad Request",
+            "BUSINESS_RULE_ERROR",
+            ex.getMessage(),
+            request.getDescription(false).replace("uri=", ""),
+            null
+        );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(
+        MethodArgumentTypeMismatchException ex,
+        WebRequest request
+    ) {
+        ApiError error = new ApiError(
+            LocalDateTime.now(),
+            HttpStatus.BAD_REQUEST.value(),
+            "Bad Request",
+            "INVALID_FORMAT",
+            "El formato del ID proporcionado no es válido. Se esperaba un UUID.",
+            request.getDescription(false).replace("uri=", ""),
+            null
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(
+        IllegalStateException ex,
+        WebRequest request
+    ) {
+        ApiError error = new ApiError(
+            LocalDateTime.now(),
+            HttpStatus.CONFLICT.value(),
+            "Conflict",
+            "ILLEGAL_STATE",
+            ex.getMessage(),
+            request.getDescription(false).replace("uri=", ""),
+            null
+        );
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 }
