@@ -14,7 +14,6 @@ public class VentaResponseDTO {
     LocalDateTime fecha;
     String estadoVenta;
     String origenVenta;
-    Integer idSucursal;
     UUID idCliente;
     UUID idEmpleado;
     BigDecimal subtotalSinDescuentos;

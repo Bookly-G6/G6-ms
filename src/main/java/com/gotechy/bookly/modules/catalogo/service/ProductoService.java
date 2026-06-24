@@ -4,6 +4,14 @@ import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
 import com.gotechy.bookly.modules.catalogo.dto.HistorialPrecioResponseDTO;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Service;
+
 import com.gotechy.bookly.modules.catalogo.dto.ProductoRequestDTO;
 import com.gotechy.bookly.modules.catalogo.dto.ProductoResponseDTO;
 import com.gotechy.bookly.modules.catalogo.model.AutorArtista;
@@ -59,18 +67,27 @@ public class ProductoService {
     }
 
     public List<ProductoResponseDTO> listarActivos() {
-        return productoRepository
-            .findByActivoTrue()
-            .stream()
-            .map(p -> mapearAResponseDTO(p, false))
+        return listarSegunRol(null);
+    }
+
+    public List<ProductoResponseDTO> listarSegunRol(Authentication authentication) {
+        boolean esAdmin = esAdmin(authentication);
+
+        List<Producto> productos = esAdmin
+            ? productoRepository.findAll()
+            : productoRepository.findByActivoTrue();
+
+        return productos.stream()
+            .map(this::mapearAResponseDTO)
             .toList();
     }
 
     public ProductoResponseDTO obtenerActivoPorId(UUID idProducto) {
-        UUID productoId = Objects.requireNonNull(
-            idProducto,
-            "El idProducto no puede ser nulo"
-        );
+        return obtenerSegunRolPorId(idProducto, null);
+    }
+
+    public ProductoResponseDTO obtenerSegunRolPorId(UUID idProducto, Authentication authentication) {
+        UUID productoId = Objects.requireNonNull(idProducto, "El idProducto no puede ser nulo");
 
         Producto producto = productoRepository
             .findById(productoId)
@@ -80,10 +97,11 @@ public class ProductoService {
                 )
             );
 
-        if (producto.getActivo() == null || !producto.getActivo()) {
-            throw new EntityNotFoundException(
-                "Producto con ID " + productoId + " no encontrado"
-            );
+        boolean esAdmin = esAdmin(authentication);
+        boolean activo = Boolean.TRUE.equals(producto.getActivo());
+
+        if (!activo && !esAdmin) {
+            throw new EntityNotFoundException("Producto con ID " + productoId + " no encontrado");
         }
 
         return mapearAResponseDTO(producto, true);
@@ -176,6 +194,7 @@ public class ProductoService {
         producto.setDescripcion(dto.getDescripcion());
         producto.setPrecioCosto(dto.getPrecioCosto());
         producto.setPrecioActual(dto.getPrecioActual());
+        producto.setStock(Objects.requireNonNullElse(dto.getStock(), 0));
         producto.setTipoProducto(tipoProducto);
         producto.setEditorialSello(editorialSello);
         producto.setRangoEtario(rangoEtario);
@@ -199,14 +218,8 @@ public class ProductoService {
         response.setDescripcion(producto.getDescripcion());
         response.setPrecioCosto(producto.getPrecioCosto());
         response.setPrecioActual(producto.getPrecioActual());
-        response.setActivo(activo);
-
-        if (incluirStock) {
-            response.setStock(producto.getStock());
-        } else {
-            response.setStock(null);
-        }
-
+        response.setStock(Objects.requireNonNullElse(producto.getStock(), 0));
+        response.setActivo(producto.getActivo());
         List<String> nombresAutores = producto
             .getAutores()
             .stream()

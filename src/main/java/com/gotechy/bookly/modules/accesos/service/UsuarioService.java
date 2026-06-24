@@ -2,6 +2,7 @@ package com.gotechy.bookly.modules.accesos.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,10 @@ import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.RolRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
+import com.gotechy.bookly.modules.ventas.model.Cliente;
+import com.gotechy.bookly.modules.ventas.model.Empleado;
+import com.gotechy.bookly.modules.ventas.repository.ClienteRepository;
+import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +30,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UsuarioService {
 
+    private static final Set<String> ROLES_PERMITIDOS = Set.of("ADMIN", "CLIENTE", "VENDEDOR");
+
     private final UsuarioRepository usuarioRepository;
     private final PersonaRepository personaRepository;
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClienteRepository clienteRepository;
+    private final EmpleadoRepository empleadoRepository;
 
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listarTodos() {
@@ -58,17 +67,19 @@ public class UsuarioService {
         persona.setTelefono(request.getTelefono());
         persona = personaRepository.saveAndFlush(persona);
 
-        Rol rolCliente = obtenerRolCliente();
+        Rol rol = obtenerRolPermitido(request.getNombreRol());
 
         Usuario usuario = new Usuario();
         usuario.setIdUsuario(UUID.randomUUID());
         usuario.setPersona(persona);
         usuario.setEmail(request.getEmail());
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
-        usuario.setRol(rolCliente);
+        usuario.setRol(rol);
         usuario.setActivo(request.getActivo() == null || request.getActivo());
 
-        return UsuarioResponseDTO.fromEntity(usuarioRepository.saveAndFlush(usuario));
+        Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
+        ensureProfiles(usuarioGuardado);
+        return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
     @Transactional
@@ -100,12 +111,12 @@ public class UsuarioService {
     @Transactional
     public UsuarioResponseDTO actualizarRol(UUID idUsuario, String nombreRol) {
         Usuario usuario = buscarUsuarioPorId(idUsuario);
-        String rolNormalizado = nombreRol == null ? null : nombreRol.trim().toUpperCase();
-        Rol nuevoRol = rolRepository.findByNombreRol(rolNormalizado)
-            .orElseThrow(() -> new IllegalArgumentException("El rol no existe: " + nombreRol));
+        Rol nuevoRol = obtenerRolPermitido(nombreRol);
 
         usuario.setRol(nuevoRol);
-        return UsuarioResponseDTO.fromEntity(usuarioRepository.saveAndFlush(usuario));
+        Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
+        ensureProfiles(usuarioGuardado);
+        return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
     @Transactional
@@ -123,12 +134,43 @@ public class UsuarioService {
             .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado con id: " + idUsuario));
     }
 
-    private Rol obtenerRolCliente() {
-        return rolRepository.findByNombreRol("CLIENTE")
-            .orElseGet(() -> {
-                Rol nuevoRol = new Rol();
-                nuevoRol.setNombreRol("CLIENTE");
-                return rolRepository.save(nuevoRol);
+    private Rol obtenerRolPermitido(String nombreRol) {
+        String rolNormalizado = nombreRol == null ? null : nombreRol.trim().toUpperCase();
+        if (!ROLES_PERMITIDOS.contains(rolNormalizado)) {
+            throw new IllegalArgumentException("El rol debe ser ADMIN, CLIENTE o VENDEDOR");
+        }
+
+        return rolRepository.findByNombreRol(rolNormalizado)
+            .orElseThrow(() -> new IllegalArgumentException("El rol no existe: " + rolNormalizado));
+    }
+
+    private void ensureProfiles(Usuario usuario) {
+        String rolNombre = usuario.getRol() != null && usuario.getRol().getNombreRol() != null
+                ? usuario.getRol().getNombreRol().trim().toUpperCase()
+                : "";
+
+        UUID idPersona = usuario.getPersona().getIdPersona();
+
+        if ("CLIENTE".equals(rolNombre)) {
+            clienteRepository.findByIdPersona(idPersona).orElseGet(() -> {
+                Cliente cliente = new Cliente();
+                cliente.setIdCliente(UUID.randomUUID());
+                cliente.setPersona(usuario.getPersona());
+                cliente.setPuntosFidelidad(0);
+                return clienteRepository.save(cliente);
             });
+            return;
+        }
+
+        if ("ADMIN".equals(rolNombre) || "VENDEDOR".equals(rolNombre)) {
+            empleadoRepository.findByIdPersona(idPersona).orElseGet(() -> {
+                Empleado empleado = new Empleado();
+                empleado.setIdEmpleado(UUID.randomUUID());
+                empleado.setIdPersona(idPersona);
+                empleado.setLegajo("EMP-" + idPersona.toString().substring(0, 8).toUpperCase());
+                empleado.setCargo(rolNombre);
+                return empleadoRepository.save(empleado);
+            });
+        }
     }
 }

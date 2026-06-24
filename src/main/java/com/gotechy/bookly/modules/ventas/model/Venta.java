@@ -41,9 +41,6 @@ public class Venta {
     @Column(name = "id_estado_venta", nullable = false)
     private Integer idEstadoVenta;
 
-    @Column(name = "id_sucursal", nullable = false)
-    private Integer idSucursal;
-
     @Column(name = "id_cliente")
     private UUID idCliente;
 

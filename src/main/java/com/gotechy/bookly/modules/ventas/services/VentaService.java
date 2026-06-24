@@ -2,12 +2,14 @@ package com.gotechy.bookly.modules.ventas.services;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -25,6 +27,9 @@ import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
 import com.gotechy.bookly.modules.logistica.dto.EnvioRequestDTO;
 import com.gotechy.bookly.modules.logistica.dto.EnvioResponseDTO;
 import com.gotechy.bookly.modules.logistica.services.EnvioService;
+import com.gotechy.bookly.modules.ventas.dto.EmpleadoCatalogResponseDTO;
+import com.gotechy.bookly.modules.ventas.dto.FormaPagoCatalogResponseDTO;
+import com.gotechy.bookly.modules.ventas.dto.TipoVentaCatalogResponseDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaCheckoutRequestDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaDetalleResponseDTO;
 import com.gotechy.bookly.modules.ventas.dto.VentaItemRequestDTO;
@@ -34,8 +39,7 @@ import com.gotechy.bookly.modules.ventas.model.Cliente;
 import com.gotechy.bookly.modules.ventas.model.DetalleVenta;
 import com.gotechy.bookly.modules.ventas.model.Empleado;
 import com.gotechy.bookly.modules.ventas.model.EstadoVentaCatalog;
-import com.gotechy.bookly.modules.ventas.model.Inventario;
-import com.gotechy.bookly.modules.ventas.model.InventarioId;
+import com.gotechy.bookly.modules.ventas.model.FormaPagoCatalog;
 import com.gotechy.bookly.modules.ventas.model.MovimientoStock;
 import com.gotechy.bookly.modules.ventas.model.Venta;
 import com.gotechy.bookly.modules.ventas.model.VentaPago;
@@ -44,7 +48,6 @@ import com.gotechy.bookly.modules.ventas.repository.DetalleVentaRepository;
 import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
 import com.gotechy.bookly.modules.ventas.repository.EstadoVentaCatalogRepository;
 import com.gotechy.bookly.modules.ventas.repository.FormaPagoCatalogRepository;
-import com.gotechy.bookly.modules.ventas.repository.InventarioRepository;
 import com.gotechy.bookly.modules.ventas.repository.MovimientoStockRepository;
 import com.gotechy.bookly.modules.ventas.repository.VentaPagoRepository;
 import com.gotechy.bookly.modules.ventas.repository.VentaRepository;
@@ -69,7 +72,6 @@ public class VentaService {
     private final VentaRepository ventaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
     private final VentaPagoRepository ventaPagoRepository;
-    private final InventarioRepository inventarioRepository;
     private final MovimientoStockRepository movimientoStockRepository;
     private final EstadoVentaCatalogRepository estadoVentaCatalogRepository;
     private final FormaPagoCatalogRepository formaPagoCatalogRepository;
@@ -103,11 +105,9 @@ public class VentaService {
         }
 
         Venta venta = new Venta();
-        venta.setFecha(LocalDateTime.now());
+        venta.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         venta.setOrigenVenta(origenVenta);
-        // ...existing code...
         venta.setIdEstadoVenta(estadoVenta.getIdEstadoVenta());
-        venta.setIdSucursal(Objects.requireNonNull(request.getIdSucursal(), "El idSucursal es obligatorio"));
         venta.setIdCliente(idCliente);
         venta.setIdEmpleado(idEmpleado);
         venta.setSubtotalSinDescuentos(BigDecimal.ZERO);
@@ -129,7 +129,7 @@ public class VentaService {
                 throw new IllegalArgumentException("El producto no está disponible: " + idProducto);
             }
 
-            validarYDescontarStock(venta.getIdSucursal(), idProducto, cantidad, idEmpleado);
+            validarYDescontarStock(idProducto, cantidad, idEmpleado);
 
             BigDecimal precioUnitario = producto.getPrecioActual();
             BigDecimal subtotalRenglon = precioUnitario.multiply(BigDecimal.valueOf(cantidad));
@@ -160,6 +160,59 @@ public class VentaService {
         EnvioResponseDTO envio = crearEnvioSiCorresponde(ventaGuardada, request, esVendedor);
 
         return construirRespuesta(ventaGuardada, detalles, totalPagado, envio);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TipoVentaCatalogResponseDTO> listarTiposVenta() {
+        return List.of(
+                TipoVentaCatalogResponseDTO.builder()
+                        .codigo(ORIGEN_WEB)
+                        .nombre("Venta web")
+                        .descripcion("Compra online realizada por cliente autenticado")
+                        .requiereEmpleado(false)
+                        .generaEnvioAutomatico(true)
+                        .build(),
+                TipoVentaCatalogResponseDTO.builder()
+                        .codigo(ORIGEN_LOCAL)
+                        .nombre("Venta local")
+                        .descripcion("Venta presencial atendida por personal autorizado")
+                        .requiereEmpleado(true)
+                        .generaEnvioAutomatico(false)
+                        .build());
+    }
+
+    @Transactional(readOnly = true)
+    public List<FormaPagoCatalogResponseDTO> listarFormasPago() {
+        return formaPagoCatalogRepository.findAll().stream()
+                .sorted(Comparator.comparing(FormaPagoCatalog::getNombrePago,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .map(formaPago -> FormaPagoCatalogResponseDTO.builder()
+                .idFormaPago(formaPago.getIdFormaPago())
+                .nombrePago(formaPago.getNombrePago())
+                .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmpleadoCatalogResponseDTO> listarEmpleados() {
+        List<Empleado> empleados = empleadoRepository.findAll().stream()
+                .sorted(Comparator.comparing(Empleado::getIdEmpleado))
+                .toList();
+
+        List<UUID> idsPersona = new ArrayList<>();
+        for (Empleado empleado : empleados) {
+            if (empleado.getIdPersona() != null) {
+                idsPersona.add(empleado.getIdPersona());
+            }
+        }
+
+        Map<UUID, Persona> personasPorId = personaRepository.findAllById(idsPersona)
+                .stream()
+                .collect(Collectors.toMap(Persona::getIdPersona, persona -> persona));
+
+        return empleados.stream()
+                .map(empleado -> mapearEmpleadoCatalogo(empleado, personasPorId.get(empleado.getIdPersona())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -229,7 +282,7 @@ public class VentaService {
         return empleadoRepository.findFirstByOrderByIdEmpleadoAsc()
                 .map(Empleado::getIdEmpleado)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "No existe un empleado para registrar movimientos de ventas no WEB"));
+                "No existe un empleado para registrar movimientos de ventas no WEB"));
     }
 
     private EstadoVentaCatalog obtenerEstadoConfirmada() {
@@ -237,35 +290,29 @@ public class VentaService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe el estado de venta CONFIRMADA"));
     }
 
-    private void validarYDescontarStock(Integer idSucursal, UUID idProducto, Integer cantidad, UUID idEmpleado) {
-        InventarioId inventarioId = new InventarioId(idSucursal, idProducto);
-        Inventario inventario = inventarioRepository.findById(inventarioId)
-                .orElseGet(() -> {
-                    Inventario nuevoInventario = new Inventario();
-                    nuevoInventario.setId(inventarioId);
-                    nuevoInventario.setStock(0);
-                    return nuevoInventario;
-                });
+    private void validarYDescontarStock(UUID idProducto, Integer cantidad, UUID idEmpleado) {
+        Producto producto = productoRepository.findById(idProducto)
+                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + idProducto));
 
-        int stockActual = Optional.ofNullable(inventario.getStock()).orElse(0);
+        int stockActual = Objects.requireNonNullElse(producto.getStock(), 0);
         if (stockActual < cantidad) {
             throw new IllegalArgumentException("Stock insuficiente para el producto: " + idProducto);
         }
 
-        inventario.setStock(stockActual - cantidad);
-        inventarioRepository.save(inventario);
+        producto.setStock(stockActual - cantidad);
+        productoRepository.save(producto);
 
         if (idEmpleado == null) {
             return;
         }
 
         MovimientoStock movimientoStock = new MovimientoStock();
-        movimientoStock.setIdSucursal(idSucursal);
         movimientoStock.setIdProducto(idProducto);
         movimientoStock.setCantidad(cantidad);
         movimientoStock.setTipoMovimiento(MOVIMIENTO_SALIDA);
-        movimientoStock.setFecha(LocalDateTime.now());
+        movimientoStock.setFecha(LocalDateTime.now(ZoneOffset.UTC));
         movimientoStock.setIdEmpleado(idEmpleado);
+        movimientoStock.setStockResultante(stockActual - cantidad);
         movimientoStockRepository.save(movimientoStock);
     }
 
@@ -360,7 +407,6 @@ public class VentaService {
                 .fecha(venta.getFecha())
                 .estadoVenta(estado == null ? null : estado.getNombreEstado())
                 .origenVenta(venta.getOrigenVenta())
-                .idSucursal(venta.getIdSucursal())
                 .idCliente(venta.getIdCliente())
                 .idEmpleado(venta.getIdEmpleado())
                 .subtotalSinDescuentos(venta.getSubtotalSinDescuentos())
@@ -406,9 +452,33 @@ public class VentaService {
                 .orElseGet(() -> {
                     Cliente cliente = new Cliente();
                     cliente.setIdCliente(UUID.randomUUID());
-                    cliente.setIdPersona(personaConsumidorFinal.getIdPersona());
+                    cliente.setPersona(personaConsumidorFinal);
                     cliente.setPuntosFidelidad(0);
                     return clienteRepository.save(cliente);
                 });
+    }
+
+    private EmpleadoCatalogResponseDTO mapearEmpleadoCatalogo(Empleado empleado, Persona persona) {
+        String nombre = persona != null ? persona.getNombre() : null;
+        String apellido = persona != null ? persona.getApellido() : null;
+        String nombreCompleto = construirNombreCompleto(nombre, apellido);
+
+        return EmpleadoCatalogResponseDTO.builder()
+                .idEmpleado(empleado.getIdEmpleado())
+                .idPersona(empleado.getIdPersona())
+                .nombreCompleto(nombreCompleto)
+                .nombre(nombre)
+                .apellido(apellido)
+                .dni(persona != null ? persona.getDni() : null)
+                .telefono(persona != null ? persona.getTelefono() : null)
+                .build();
+    }
+
+    private String construirNombreCompleto(String nombre, String apellido) {
+        String nombreSafe = nombre == null ? "" : nombre.trim();
+        String apellidoSafe = apellido == null ? "" : apellido.trim();
+
+        String combinado = (nombreSafe + " " + apellidoSafe).trim();
+        return combinado.isEmpty() ? null : combinado;
     }
 }

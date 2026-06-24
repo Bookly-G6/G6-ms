@@ -73,6 +73,9 @@ public class SecurityConfig {
                         // Usuarios: solo ADMIN
                         .requestMatchers("/api/v1/usuarios/**").hasRole(ADMIN_ROLE)
 
+                        // Roles: solo ADMIN
+                        .requestMatchers("/api/v1/roles/**").hasRole(ADMIN_ROLE)
+
                         // Catálogo escritura: solo ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/v1/productos/**").hasRole(ADMIN_ROLE)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/productos/**").hasRole(ADMIN_ROLE)
