@@ -121,10 +121,17 @@ public class UsuarioService {
     @Transactional
     public void eliminarUsuario(UUID idUsuario) {
         Usuario usuario = buscarUsuarioPorId(idUsuario);
-        Persona persona = Objects.requireNonNull(usuario.getPersona(), "La persona del usuario no puede ser nula");
+        // Soft delete: marcar como inactivo en lugar de borrar físicamente
+        usuario.setActivo(false);
+        usuarioRepository.saveAndFlush(usuario);
+    }
 
-        usuarioRepository.delete(usuario);
-        personaRepository.delete(persona);
+    @Transactional
+    public UsuarioResponseDTO inactivarUsuario(UUID idUsuario) {
+        Usuario usuario = buscarUsuarioPorId(idUsuario);
+        usuario.setActivo(false);
+        Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
+        return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
     private Usuario buscarUsuarioPorId(UUID idUsuario) {

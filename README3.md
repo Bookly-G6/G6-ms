@@ -204,7 +204,7 @@ Body:
 
 Obligatorios: `nombre`, `apellido`, `email`, `password`.
 
-Opcionales: `dni`, `telefono`, `activo`.
+Opcionales: `dni`, `telefono`, `rol`, `activo`.
 
 Validaciones: `email` valido y unico; `password` minimo 6 caracteres. Si `activo` no se envia, queda `true`.
 

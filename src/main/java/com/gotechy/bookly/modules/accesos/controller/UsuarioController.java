@@ -73,4 +73,10 @@ public class UsuarioController {
         usuarioService.eliminarUsuario(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}/inactivar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UsuarioResponseDTO> inactivarUsuario(@PathVariable UUID id) {
+        return ResponseEntity.ok(usuarioService.inactivarUsuario(id));
+    }
 }
