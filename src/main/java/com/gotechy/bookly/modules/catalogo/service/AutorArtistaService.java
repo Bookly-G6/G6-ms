@@ -17,9 +17,32 @@ public class AutorArtistaService {
         return autorArtistaRepository.findByActivaTrue();
     }
 
+    public AutorArtista obtenerPorId(Integer id) {
+        AutorArtista autor = autorArtistaRepository
+            .findById(id)
+            .orElseThrow(() ->
+                new EntityNotFoundException(
+                    "Autor o Artista con ID " + id + " no encontrado"
+                )
+            );
+
+        if (!autor.getActiva()) {
+            throw new IllegalStateException(
+                "El autor/artista se encuentra inactivo"
+            );
+        }
+        return autor;
+    }
+
     public AutorArtista crear(AutorArtista autorArtista) {
-        // Por defecto, la entidad ya nace con activa = true
+        autorArtista.setActiva(true);
         return autorArtistaRepository.save(autorArtista);
+    }
+
+    public AutorArtista actualizar(Integer id, AutorArtista autorActualizado) {
+        AutorArtista autor = obtenerPorId(id);
+        autor.setNombre(autorActualizado.getNombre());
+        return autorArtistaRepository.save(autor);
     }
 
     public void eliminar(Integer id) {
@@ -30,6 +53,12 @@ public class AutorArtistaService {
                     "Autor o Artista con ID " + id + " no encontrado"
                 )
             );
+
+        if (!autor.getActiva()) {
+            throw new IllegalStateException(
+                "El autor/artista ya se encuentra inactivo."
+            );
+        }
 
         autor.setActiva(false);
         autorArtistaRepository.save(autor);
