@@ -51,4 +51,10 @@ public class Envio {
 
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
+
+    @Column(name = "direccion_entrega", length = 255)
+    private String direccionEntrega;
+
+    @Column(name = "fecha_estimada_entrega")
+    private java.time.LocalDate fechaEstimadaEntrega;
 }

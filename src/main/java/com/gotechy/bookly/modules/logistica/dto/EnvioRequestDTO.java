@@ -14,5 +14,11 @@ public class EnvioRequestDTO {
     @NotNull(message = "Debe especificar si es DOMICILIO o RETIRO_SUCURSAL")
     private TipoEnvio tipoEnvio;
 
+    @NotNull(message = "La dirección de entrega es obligatoria")
+    private String direccionEntrega;
+
+    @NotNull(message = "La fecha estimada de entrega es obligatoria")
+    private java.time.LocalDate fechaEstimadaEntrega;
+
     private String observaciones;
 }

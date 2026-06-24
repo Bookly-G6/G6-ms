@@ -58,8 +58,16 @@ public class EnvioService {
         nuevoEnvio.setEstadoLogistica(EstadoLogistica.EN_PREPARACION);
         nuevoEnvio.setObservaciones(requestDTO.getObservaciones());
 
+        nuevoEnvio.setDireccionEntrega(requestDTO.getDireccionEntrega());
+
+        java.time.LocalDate hoy = java.time.LocalDate.now();
+
         if (requestDTO.getTipoEnvio().name().equals("RETIRO_SUCURSAL")) {
             nuevoEnvio.setCodigoRetiro(generarCodigoRetiro());
+            nuevoEnvio.setDireccionEntrega("Sucursal Bookly (Retiro en Local)");
+            nuevoEnvio.setFechaEstimadaEntrega(hoy.plusDays(2));
+        } else {
+            nuevoEnvio.setFechaEstimadaEntrega(hoy.plusDays(7));
         }
 
         Envio envioGuardado = envioRepository.save(nuevoEnvio);
@@ -230,6 +238,8 @@ public class EnvioService {
         EnvioResponseDTO dto = new EnvioResponseDTO();
         dto.setIdEnvio(envio.getIdEnvio());
         dto.setIdVenta(envio.getIdVenta());
+        dto.setDireccionEntrega(envio.getDireccionEntrega());
+        dto.setFechaEstimadaEntrega(envio.getFechaEstimadaEntrega());
 
         dto.setTipoEnvio(
             envio.getTipoEnvio() != null

@@ -15,4 +15,6 @@ public class EnvioResponseDTO {
     private String empresaCorreo;
     private String numeroTracking;
     private LocalDateTime fechaActualizacion;
+    private String direccionEntrega;
+    private java.time.LocalDate fechaEstimadaEntrega;
 }
