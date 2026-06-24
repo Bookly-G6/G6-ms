@@ -92,7 +92,4 @@ public class Producto {
         inverseJoinColumns = @JoinColumn(name = "id_autor_artista")
     )
     private List<AutorArtista> autores;
-
-    @Column(name = "stock", nullable = false)
-    private Integer stock = 0;
 }

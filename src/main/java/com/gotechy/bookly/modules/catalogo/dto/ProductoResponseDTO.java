@@ -1,6 +1,5 @@
 package com.gotechy.bookly.modules.catalogo.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +27,6 @@ public class ProductoResponseDTO {
 
     // El JSON intacto para que rendericen la tabla de especificaciones técnicas
     private Map<String, Object> atributosEspecificos;
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Integer stock;
 
     private List<String> autores;
 }
