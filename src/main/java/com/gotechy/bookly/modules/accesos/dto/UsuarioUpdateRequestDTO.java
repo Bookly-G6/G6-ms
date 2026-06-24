@@ -1,27 +1,27 @@
 package com.gotechy.bookly.modules.accesos.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class UsuarioUpdateRequestDTO {
 
-    @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
-    @NotBlank(message = "El apellido es obligatorio")
     private String apellido;
 
-    @NotBlank(message = "El email es obligatorio")
     @Email(message = "Debe ser un email valido")
     private String email;
-
-    @Size(min = 6, message = "La contrasena debe tener al menos 6 caracteres")
-    private String password;
 
     private String dni;
     private String telefono;
     private Boolean activo;
+    private String rol;
+
+    @AssertTrue(message = "Debe enviar al menos un campo para actualizar")
+    public boolean isAtLeastOneFieldPresent() {
+        return nombre != null || apellido != null || email != null || 
+               dni != null || telefono != null || activo != null || rol != null;
+    }
 }

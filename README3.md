@@ -223,18 +223,18 @@ Body:
   "nombre": "<nombre>",
   "apellido": "<apellido>",
   "email": "<email>",
-  "password": "<password opcional>",
   "dni": "<dni>",
   "telefono": "<telefono>",
-  "activo": true
+  "activo": true,
+  "rol": "<rol>"
 }
 ```
 
-Obligatorios: `nombre`, `apellido`, `email`.
+Obligatorios: Ningún campo es fijo, pero **debes enviar al menos un campo** para actualizar.
 
-Opcionales: `password`, `dni`, `telefono`, `activo`.
+Opcionales: `nombre`, `apellido`, `email`, `dni`, `telefono`, `activo`, `rol`.
 
-Validaciones: `email` valido y unico respecto de otros usuarios; si se envia `password`, minimo 6 caracteres. Si `password` es `null` o blanco, no cambia.
+Validaciones: `email` válido y único respecto de otros usuarios. Si se actualiza el `rol`, se actualiza automáticamente el perfil asociado (ej. Cargo del Empleado).
 
 Responde `200`: objeto de usuario.
 

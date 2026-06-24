@@ -83,26 +83,49 @@ public class UsuarioService {
     public UsuarioResponseDTO actualizarUsuario(UUID idUsuario, UsuarioUpdateRequestDTO request) {
         Usuario usuario = buscarUsuarioPorId(idUsuario);
 
-        if (usuarioRepository.existsByEmailAndIdUsuarioNot(request.getEmail(), idUsuario)) {
-            throw new IllegalArgumentException("El email ya esta registrado");
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (usuarioRepository.existsByEmailAndIdUsuarioNot(request.getEmail(), idUsuario)) {
+                throw new IllegalArgumentException("El email ya esta registrado");
+            }
+            usuario.setEmail(request.getEmail());
         }
 
         Persona persona = usuario.getPersona();
-        persona.setNombre(request.getNombre());
-        persona.setApellido(request.getApellido());
-        persona.setDni(request.getDni());
-        persona.setTelefono(request.getTelefono());
-
-        usuario.setEmail(request.getEmail());
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            usuario.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.getNombre() != null) {
+            persona.setNombre(request.getNombre());
+        }
+        if (request.getApellido() != null) {
+            persona.setApellido(request.getApellido());
+        }
+        if (request.getDni() != null) {
+            persona.setDni(request.getDni());
+        }
+        if (request.getTelefono() != null) {
+            persona.setTelefono(request.getTelefono());
         }
         if (request.getActivo() != null) {
             usuario.setActivo(request.getActivo());
         }
 
+        if (request.getRol() != null && !request.getRol().isBlank()) {
+            Rol nuevoRol = resolverRolParaCreacion(request.getRol());
+            usuario.setRol(nuevoRol);
+            
+            // Actualizar empleado si existe
+            empleadoRepository.findByIdPersona(persona.getIdPersona()).ifPresent(empleado -> {
+                empleado.setCargo(nuevoRol.getNombreRol());
+                empleadoRepository.save(empleado);
+            });
+        }
+
         personaRepository.save(persona);
-        return UsuarioResponseDTO.fromEntity(usuarioRepository.saveAndFlush(usuario));
+        Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
+        
+        if (request.getRol() != null && !request.getRol().isBlank()) {
+            ensureProfiles(usuarioGuardado);
+        }
+
+        return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
     @Transactional
