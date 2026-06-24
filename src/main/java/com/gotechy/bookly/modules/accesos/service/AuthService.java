@@ -126,7 +126,7 @@ public class AuthService {
         clienteRepository.findByIdPersona(idPersona).orElseGet(() -> {
             Cliente cliente = new Cliente();
             cliente.setIdCliente(UUID.randomUUID());
-            cliente.setIdPersona(idPersona);
+            cliente.setPersona(usuario.getPersona());
             cliente.setPuntosFidelidad(0);
             return clienteRepository.save(cliente);
         });

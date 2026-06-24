@@ -172,7 +172,7 @@ public class ProductoService {
         return mapearAResponseDTO(productoGuardado);
     }
 
-    private ProductoResponseDTO mapearAResponseDTO(Producto producto) {
+    public ProductoResponseDTO mapearAResponseDTO(Producto producto) {
         ProductoResponseDTO response = new ProductoResponseDTO();
         response.setIdProducto(producto.getIdProducto());
         response.setCodigoBarras(producto.getCodigoBarras());

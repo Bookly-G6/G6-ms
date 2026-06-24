@@ -44,4 +44,7 @@ public class MovimientoStock {
 
     @Column(name = "id_empleado", nullable = false)
     private UUID idEmpleado;
+
+    @Column(name = "stock_resultante")
+    private Integer stockResultante;
 }

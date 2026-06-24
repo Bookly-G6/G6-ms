@@ -63,6 +63,18 @@ public class InventarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(inventarioService.crearMovimiento(request));
     }
 
+    @PostMapping("/movimientos/entrada")
+    @PreAuthorize("hasAnyRole('ADMIN','VENDEDOR')")
+    public ResponseEntity<MovimientoStockResponseDTO> crearEntrada(@Valid @RequestBody MovimientoStockRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(inventarioService.crearEntrada(request));
+    }
+
+    @PostMapping("/movimientos/salida")
+    @PreAuthorize("hasAnyRole('ADMIN','VENDEDOR')")
+    public ResponseEntity<MovimientoStockResponseDTO> crearSalida(@Valid @RequestBody MovimientoStockRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(inventarioService.crearSalida(request));
+    }
+
     @PutMapping("/movimientos/{idMovimiento}")
     @PreAuthorize("hasAnyRole('ADMIN','VENDEDOR')")
     public ResponseEntity<MovimientoStockResponseDTO> actualizarMovimiento(

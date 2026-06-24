@@ -10,7 +10,6 @@ import lombok.Data;
 @Data
 public class MovimientoStockRequestDTO {
 
-    @NotNull(message = "El idSucursal es obligatorio")
     private Integer idSucursal;
 
     @NotNull(message = "El idProducto es obligatorio")

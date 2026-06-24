@@ -17,6 +17,8 @@ import com.gotechy.bookly.modules.accesos.model.Usuario;
 import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
 import com.gotechy.bookly.modules.accesos.repository.RolRepository;
 import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
+import com.gotechy.bookly.modules.ventas.model.Cliente;
+import com.gotechy.bookly.modules.ventas.repository.ClienteRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class UsuarioService {
     private final PersonaRepository personaRepository;
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClienteRepository clienteRepository;
 
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listarTodos() {
@@ -68,7 +71,9 @@ public class UsuarioService {
         usuario.setRol(rolCliente);
         usuario.setActivo(request.getActivo() == null || request.getActivo());
 
-        return UsuarioResponseDTO.fromEntity(usuarioRepository.saveAndFlush(usuario));
+        Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
+        ensureClienteProfile(usuarioGuardado);
+        return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
     @Transactional
@@ -105,7 +110,9 @@ public class UsuarioService {
             .orElseThrow(() -> new IllegalArgumentException("El rol no existe: " + nombreRol));
 
         usuario.setRol(nuevoRol);
-        return UsuarioResponseDTO.fromEntity(usuarioRepository.saveAndFlush(usuario));
+        Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
+        ensureClienteProfile(usuarioGuardado);
+        return UsuarioResponseDTO.fromEntity(usuarioGuardado);
     }
 
     @Transactional
@@ -130,5 +137,24 @@ public class UsuarioService {
                 nuevoRol.setNombreRol("CLIENTE");
                 return rolRepository.save(nuevoRol);
             });
+    }
+
+    private void ensureClienteProfile(Usuario usuario) {
+        String rolNombre = usuario.getRol() != null && usuario.getRol().getNombreRol() != null
+                ? usuario.getRol().getNombreRol().trim().toUpperCase()
+                : "";
+
+        if (!"CLIENTE".equals(rolNombre)) {
+            return;
+        }
+
+        UUID idPersona = usuario.getPersona().getIdPersona();
+        clienteRepository.findByIdPersona(idPersona).orElseGet(() -> {
+            Cliente cliente = new Cliente();
+            cliente.setIdCliente(UUID.randomUUID());
+            cliente.setPersona(usuario.getPersona());
+            cliente.setPuntosFidelidad(0);
+            return clienteRepository.save(cliente);
+        });
     }
 }
