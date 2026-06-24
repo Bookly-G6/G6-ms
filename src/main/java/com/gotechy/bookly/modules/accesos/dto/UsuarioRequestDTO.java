@@ -22,7 +22,32 @@ public class UsuarioRequestDTO {
     @Size(min = 6, message = "La contrasena debe tener al menos 6 caracteres")
     private String password;
 
+    private String rol;
+    private String nombreRol;
+    private String role;
     private String dni;
     private String telefono;
     private Boolean activo;
+
+    public String getRol() {
+        if (rol != null && !rol.isBlank()) {
+            return rol;
+        }
+        if (nombreRol != null && !nombreRol.isBlank()) {
+            return nombreRol;
+        }
+        return role;
+    }
+
+    public void setRol(String rol) {
+        this.rol = rol;
+    }
+
+    public void setNombreRol(String nombreRol) {
+        this.nombreRol = nombreRol;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
 }

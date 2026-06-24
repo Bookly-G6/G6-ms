@@ -64,14 +64,14 @@ public class UsuarioService {
         persona.setTelefono(request.getTelefono());
         persona = personaRepository.saveAndFlush(persona);
 
-        Rol rolCliente = obtenerRolCliente();
+        Rol rolAsignado = resolverRolParaCreacion(request.getRol());
 
         Usuario usuario = new Usuario();
         usuario.setIdUsuario(UUID.randomUUID());
         usuario.setPersona(persona);
         usuario.setEmail(request.getEmail());
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
-        usuario.setRol(rolCliente);
+        usuario.setRol(rolAsignado);
         usuario.setActivo(request.getActivo() == null || request.getActivo());
 
         Usuario usuarioGuardado = usuarioRepository.saveAndFlush(usuario);
@@ -140,6 +140,16 @@ public class UsuarioService {
                 nuevoRol.setNombreRol("CLIENTE");
                 return rolRepository.save(nuevoRol);
             });
+    }
+
+    private Rol resolverRolParaCreacion(String nombreRol) {
+        if (nombreRol == null || nombreRol.isBlank()) {
+            return obtenerRolCliente();
+        }
+
+        String rolNormalizado = nombreRol.trim().toUpperCase();
+        return rolRepository.findByNombreRol(rolNormalizado)
+            .orElseThrow(() -> new IllegalArgumentException("El rol no existe: " + nombreRol));
     }
 
     private void ensureProfiles(Usuario usuario) {
