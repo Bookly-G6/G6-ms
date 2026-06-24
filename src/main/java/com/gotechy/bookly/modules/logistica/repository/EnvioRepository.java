@@ -22,8 +22,8 @@ public interface EnvioRepository extends JpaRepository<Envio, UUID> {
     @Query(
         "SELECT e FROM Envio e JOIN Venta v ON e.idVenta = v.idVenta " +
             "JOIN Cliente c ON v.idCliente = c.idCliente " +
-            "JOIN Persona p ON c.idPersona = p.idPersona " +
-            "WHERE e.estadoLogistica = :estado " + // <-- Cambio: estadoLogistica
+            "JOIN c.persona p " +
+            "WHERE e.estadoLogistica = :estado " +
             "AND (:idVenta IS NULL OR e.idVenta = :idVenta) " +
             "AND (:terminoBusqueda IS NULL OR p.nombre ILIKE %:terminoBusqueda% " +
             "OR p.apellido ILIKE %:terminoBusqueda% OR p.dni LIKE %:terminoBusqueda%)"

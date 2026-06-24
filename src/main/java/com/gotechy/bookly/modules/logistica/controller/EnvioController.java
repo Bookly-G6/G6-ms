@@ -1,6 +1,7 @@
 package com.gotechy.bookly.modules.logistica.controller;
 
 import com.gotechy.bookly.modules.logistica.dto.ActualizarEstadoRequestDTO;
+import com.gotechy.bookly.modules.logistica.dto.EnvioEnriquecidoDTO;
 import com.gotechy.bookly.modules.logistica.dto.EnvioRequestDTO;
 import com.gotechy.bookly.modules.logistica.dto.EnvioResponseDTO;
 import com.gotechy.bookly.modules.logistica.services.EnvioService;
@@ -50,6 +51,13 @@ public class EnvioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(
             envioService.inicializarEnvio(dto)
         );
+    }
+
+    @GetMapping("/{id}/detalle-completo")
+    public ResponseEntity<EnvioEnriquecidoDTO> getDetalleCompleto(
+        @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(envioService.obtenerDetalleEnvioCompleto(id));
     }
 
     @PatchMapping("/{idEnvio}/estado")
