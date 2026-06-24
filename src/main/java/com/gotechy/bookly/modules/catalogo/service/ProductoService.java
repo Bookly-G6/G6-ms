@@ -21,7 +21,9 @@ import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
 import com.gotechy.bookly.modules.catalogo.repository.RangoEtarioRepository;
 import com.gotechy.bookly.modules.catalogo.repository.TipoProductoRepository;
 import com.gotechy.bookly.modules.ventas.model.Empleado;
+import com.gotechy.bookly.modules.ventas.model.MovimientoStock;
 import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
+import com.gotechy.bookly.modules.ventas.repository.MovimientoStockRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Objects;
@@ -46,12 +48,21 @@ public class ProductoService {
     private final UsuarioRepository usuarioRepository;
     private final EmpleadoRepository empleadoRepository;
     private final PersonaRepository personaRepository;
+    private final MovimientoStockRepository movimientoStockRepository;
+
+    public List<ProductoResponseDTO> listarTodos() {
+        return productoRepository
+            .findAll()
+            .stream()
+            .map(p -> mapearAResponseDTO(p, true))
+            .toList();
+    }
 
     public List<ProductoResponseDTO> listarActivos() {
         return productoRepository
             .findByActivoTrue()
             .stream()
-            .map(this::mapearAResponseDTO)
+            .map(p -> mapearAResponseDTO(p, false))
             .toList();
     }
 
@@ -75,7 +86,7 @@ public class ProductoService {
             );
         }
 
-        return mapearAResponseDTO(producto);
+        return mapearAResponseDTO(producto, true);
     }
 
     public ProductoResponseDTO obtenerPorId(UUID id) {
@@ -93,7 +104,7 @@ public class ProductoService {
             );
         }
 
-        return mapearAResponseDTO(producto);
+        return mapearAResponseDTO(producto, true);
     }
 
     public ProductoResponseDTO crearProducto(ProductoRequestDTO dto) {
@@ -108,6 +119,10 @@ public class ProductoService {
         Integer rangoEtarioId = Objects.requireNonNull(
             dto.getIdRangoEtario(),
             "El idRangoEtario es obligatorio"
+        );
+        Integer stock = Objects.requireNonNull(
+            dto.getStock(),
+            "El stock es obligatorio"
         );
         List<Integer> categoriasIds = Objects.requireNonNull(
             dto.getIdsCategorias(),
@@ -169,10 +184,14 @@ public class ProductoService {
 
         Producto productoGuardado = productoRepository.save(producto);
 
-        return mapearAResponseDTO(productoGuardado);
+        return mapearAResponseDTO(productoGuardado, true, true);
     }
 
-    private ProductoResponseDTO mapearAResponseDTO(Producto producto) {
+    private ProductoResponseDTO mapearAResponseDTO(
+        Producto producto,
+        boolean activo,
+        boolean incluirStock
+    ) {
         ProductoResponseDTO response = new ProductoResponseDTO();
         response.setIdProducto(producto.getIdProducto());
         response.setCodigoBarras(producto.getCodigoBarras());
@@ -180,7 +199,13 @@ public class ProductoService {
         response.setDescripcion(producto.getDescripcion());
         response.setPrecioCosto(producto.getPrecioCosto());
         response.setPrecioActual(producto.getPrecioActual());
-        response.setActivo(producto.getActivo());
+        response.setActivo(activo);
+
+        if (incluirStock) {
+            response.setStock(producto.getStock());
+        } else {
+            response.setStock(null);
+        }
 
         List<String> nombresAutores = producto
             .getAutores()
@@ -230,6 +255,7 @@ public class ProductoService {
 
         java.math.BigDecimal precioCostoAnterior = producto.getPrecioCosto();
         java.math.BigDecimal precioVentaAnterior = producto.getPrecioActual();
+        Integer stockAnterior = producto.getStock();
 
         TipoProducto tipoProducto = tipoProductoRepository
             .findById(dto.getIdTipoProducto())
@@ -269,6 +295,7 @@ public class ProductoService {
         producto.setPrecioCosto(dto.getPrecioCosto());
         producto.setPrecioActual(dto.getPrecioActual());
         producto.setAtributosEspecificos(dto.getAtributosEspecificos());
+        producto.setStock(dto.getStock());
 
         producto.setTipoProducto(tipoProducto);
         producto.setEditorialSello(editorialSello);
@@ -280,26 +307,18 @@ public class ProductoService {
             precioCostoAnterior.compareTo(dto.getPrecioCosto()) != 0;
         boolean cambioPrecioVenta =
             precioVentaAnterior.compareTo(dto.getPrecioActual()) != 0;
+        boolean cambioStock = !stockAnterior.equals(dto.getStock());
 
-        if (cambioPrecioCosto || cambioPrecioVenta) {
-            HistorialPrecio historial = new HistorialPrecio();
-            historial.setProducto(producto);
-            historial.setPrecioCostoAnterior(precioCostoAnterior);
-            historial.setPrecioVentaAnterior(precioVentaAnterior);
-            historial.setPrecioCostoNuevo(dto.getPrecioCosto());
-            historial.setPrecioVentaNuevo(dto.getPrecioActual());
-            historial.setFechaCambio(java.time.LocalDateTime.now());
-
+        if (cambioPrecioCosto || cambioPrecioVenta || cambioStock) {
             Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
-
             if (
                 authentication == null ||
                 !authentication.isAuthenticated() ||
                 "anonymousUser".equals(authentication.getPrincipal())
             ) {
                 throw new SecurityException(
-                    "Acceso denegado: Se requiere estar autenticado para modificar precios."
+                    "Acceso denegado: Se requiere estar autenticado para modificar productos."
                 );
             }
 
@@ -321,13 +340,37 @@ public class ProductoService {
                     )
                 );
 
-            historial.setIdEmpleado(empleadoEjecutor.getIdEmpleado());
+            if (cambioPrecioCosto || cambioPrecioVenta) {
+                HistorialPrecio historial = new HistorialPrecio();
+                historial.setProducto(producto);
+                historial.setPrecioCostoAnterior(precioCostoAnterior);
+                historial.setPrecioVentaAnterior(precioVentaAnterior);
+                historial.setPrecioCostoNuevo(dto.getPrecioCosto());
+                historial.setPrecioVentaNuevo(dto.getPrecioActual());
+                historial.setFechaCambio(java.time.LocalDateTime.now());
+                historial.setIdEmpleado(empleadoEjecutor.getIdEmpleado());
+                historialPrecioRepository.save(historial);
+            }
 
-            historialPrecioRepository.save(historial);
+            if (cambioStock) {
+                MovimientoStock movimiento = new MovimientoStock();
+                movimiento.setIdProducto(producto.getIdProducto());
+                movimiento.setCantidad(
+                    Math.abs(dto.getStock() - stockAnterior)
+                );
+                movimiento.setTipoMovimiento(
+                    dto.getStock() > stockAnterior
+                        ? "Ingreso Manual"
+                        : "Ajuste Manual"
+                );
+                movimiento.setFecha(java.time.LocalDateTime.now());
+                movimiento.setIdEmpleado(empleadoEjecutor.getIdEmpleado());
+                movimientoStockRepository.save(movimiento);
+            }
         }
 
         Producto productoActualizado = productoRepository.save(producto);
-        return mapearAResponseDTO(productoActualizado);
+        return mapearAResponseDTO(productoActualizado, true); // true para mostrar stock
     }
 
     public void eliminar(UUID id) {

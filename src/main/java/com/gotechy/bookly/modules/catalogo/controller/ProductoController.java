@@ -31,7 +31,20 @@ public class ProductoController {
     private final JsonAtributosValidator jsonValidator;
 
     @GetMapping
-    public ResponseEntity<List<ProductoResponseDTO>> listarProductos() {
+    public ResponseEntity<List<ProductoResponseDTO>> listarProductos(
+        org.springframework.security.core.Authentication auth
+    ) {
+        boolean esAdmin =
+            auth != null &&
+            auth
+                .getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (esAdmin) {
+            return ResponseEntity.ok(productoService.listarTodos());
+        }
+
         return ResponseEntity.ok(productoService.listarActivos());
     }
 
