@@ -1,22 +1,22 @@
 package com.gotechy.bookly.modules.logistica.dto;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime; // Asegurate de importar esto
 import java.util.List;
 import java.util.UUID;
 import lombok.Data;
 
 @Data
-public class EnvioResponseDTO {
+public class EnvioEnriquecidoDTO {
 
     private UUID idEnvio;
-    private UUID idVenta;
     private String tipoEnvio;
     private String estadoLogistica;
     private String numeroTracking;
-    private String codigoRetiro;
-    private String empresaCorreo;
-    private String direccionEntrega;
     private LocalDate fechaEstimadaEntrega;
-    private LocalDateTime fechaActualizacion;
+    private String direccionEntrega;
+
+    private String nombreCliente;
+    private String telefonoCliente;
+    private Double totalVenta;
+    private List<DetalleProductoDTO> productos;
 }

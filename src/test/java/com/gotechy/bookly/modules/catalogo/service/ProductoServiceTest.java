@@ -27,6 +27,11 @@ import com.gotechy.bookly.modules.catalogo.repository.EditorialSelloRepository;
 import com.gotechy.bookly.modules.catalogo.repository.ProductoRepository;
 import com.gotechy.bookly.modules.catalogo.repository.RangoEtarioRepository;
 import com.gotechy.bookly.modules.catalogo.repository.TipoProductoRepository;
+import com.gotechy.bookly.modules.catalogo.repository.HistorialPrecioRepository;
+import com.gotechy.bookly.modules.accesos.repository.UsuarioRepository;
+import com.gotechy.bookly.modules.ventas.repository.EmpleadoRepository;
+import com.gotechy.bookly.modules.accesos.repository.PersonaRepository;
+import com.gotechy.bookly.modules.ventas.repository.MovimientoStockRepository;
 
 class ProductoServiceTest {
 
@@ -38,6 +43,11 @@ class ProductoServiceTest {
         RangoEtarioRepository rangoEtarioRepository = mock(RangoEtarioRepository.class);
         CategoriaRepository categoriaRepository = mock(CategoriaRepository.class);
         AutorArtistaRepository autorArtistaRepository = mock(AutorArtistaRepository.class);
+        HistorialPrecioRepository historialPrecioRepository = mock(HistorialPrecioRepository.class);
+        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        EmpleadoRepository empleadoRepository = mock(EmpleadoRepository.class);
+        PersonaRepository personaRepository = mock(PersonaRepository.class);
+        MovimientoStockRepository movimientoStockRepository = mock(MovimientoStockRepository.class);
 
         ProductoService productoService = new ProductoService(
             productoRepository,
@@ -45,7 +55,12 @@ class ProductoServiceTest {
             editorialSelloRepository,
             rangoEtarioRepository,
             categoriaRepository,
-            autorArtistaRepository
+            autorArtistaRepository,
+            historialPrecioRepository,
+            usuarioRepository,
+            empleadoRepository,
+            personaRepository,
+            movimientoStockRepository
         );
 
         Producto productoActivo = crearProducto(true);
@@ -69,6 +84,11 @@ class ProductoServiceTest {
         RangoEtarioRepository rangoEtarioRepository = mock(RangoEtarioRepository.class);
         CategoriaRepository categoriaRepository = mock(CategoriaRepository.class);
         AutorArtistaRepository autorArtistaRepository = mock(AutorArtistaRepository.class);
+        HistorialPrecioRepository historialPrecioRepository = mock(HistorialPrecioRepository.class);
+        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        EmpleadoRepository empleadoRepository = mock(EmpleadoRepository.class);
+        PersonaRepository personaRepository = mock(PersonaRepository.class);
+        MovimientoStockRepository movimientoStockRepository = mock(MovimientoStockRepository.class);
 
         ProductoService productoService = new ProductoService(
             productoRepository,
@@ -76,7 +96,12 @@ class ProductoServiceTest {
             editorialSelloRepository,
             rangoEtarioRepository,
             categoriaRepository,
-            autorArtistaRepository
+            autorArtistaRepository,
+            historialPrecioRepository,
+            usuarioRepository,
+            empleadoRepository,
+            personaRepository,
+            movimientoStockRepository
         );
 
         Producto productoActivo = crearProducto(true);
@@ -101,6 +126,11 @@ class ProductoServiceTest {
         RangoEtarioRepository rangoEtarioRepository = mock(RangoEtarioRepository.class);
         CategoriaRepository categoriaRepository = mock(CategoriaRepository.class);
         AutorArtistaRepository autorArtistaRepository = mock(AutorArtistaRepository.class);
+        HistorialPrecioRepository historialPrecioRepository = mock(HistorialPrecioRepository.class);
+        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        EmpleadoRepository empleadoRepository = mock(EmpleadoRepository.class);
+        PersonaRepository personaRepository = mock(PersonaRepository.class);
+        MovimientoStockRepository movimientoStockRepository = mock(MovimientoStockRepository.class);
 
         ProductoService productoService = new ProductoService(
             productoRepository,
@@ -108,7 +138,12 @@ class ProductoServiceTest {
             editorialSelloRepository,
             rangoEtarioRepository,
             categoriaRepository,
-            autorArtistaRepository
+            autorArtistaRepository,
+            historialPrecioRepository,
+            usuarioRepository,
+            empleadoRepository,
+            personaRepository,
+            movimientoStockRepository
         );
 
         Producto producto = crearProducto(true);
