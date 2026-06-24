@@ -275,9 +275,7 @@ public class VentaService {
             return idEmpleadoRequest;
         }
 
-        if (ORIGEN_WEB.equalsIgnoreCase(origenVenta)) {
-            return null;
-        }
+
 
         return empleadoRepository.findFirstByOrderByIdEmpleadoAsc()
                 .map(Empleado::getIdEmpleado)
@@ -301,10 +299,6 @@ public class VentaService {
 
         producto.setStock(stockActual - cantidad);
         productoRepository.save(producto);
-
-        if (idEmpleado == null) {
-            return;
-        }
 
         MovimientoStock movimientoStock = new MovimientoStock();
         movimientoStock.setIdProducto(idProducto);
